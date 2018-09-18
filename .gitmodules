@@ -1,0 +1,3 @@
+[submodule "rust/j2534"]
+	path = rust/j2534
+	url = https://github.com/Altenius/j2534-rs.git

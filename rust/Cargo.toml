@@ -1,0 +1,17 @@
+[package]
+name = "tuneutils"
+version = "0.1.0"
+authors = ["Altenius <jacobjm18@gmail.com>"]
+description = "Utilities for tuning vehicles"
+respository = "https://github.com/LibreTuner/tuneutils"
+
+[dependencies]
+libc = "0.2"
+
+[target.'cfg(window)'.dependencies]
+j2534 = { path = "j2534" }
+
+[workspace]
+members = [
+    "j2534",
+]
