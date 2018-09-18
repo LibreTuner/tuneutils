@@ -58,6 +58,7 @@ impl std::error::Error for Error {
     }
 }
 
+#[derive(Debug)]
 pub struct Message {
     pub id: u32,
     pub data: Vec<u8>,

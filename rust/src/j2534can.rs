@@ -92,8 +92,8 @@ impl<'a> Interface for J2534Can<'a> {
             }
             let mut reader: &[u8] = &msg.data;
             let id = reader.read_u32::<BigEndian>()?;
-            let mut buffer = Vec::new();
-            let _amount = reader.read_to_end(&mut buffer)?;
+            let mut buffer = vec![0; (msg.data_size - 4) as usize];
+            let _amount = reader.read(&mut buffer)?;
 
             break Ok(Message {
                 id,
