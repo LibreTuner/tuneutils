@@ -17,7 +17,7 @@ pub enum Error {
     InvalidResponse,
     Timeout,
     TooMuchData,
-    WriteError,
+    IncompleteWrite,
     ReadError,
     
     #[cfg(windows)]
@@ -32,8 +32,10 @@ impl Error {
             Error::InvalidResponse => "invalid response",
             Error::Timeout => "timed out",
             Error::TooMuchData => "too much data",
-            Error::WriteError => "failed to write",
+            Error::IncompleteWrite => "only part of the data could be written",
             Error::ReadError => "failed to read",
+            #[cfg(windows)]
+            Error::J2534(ref _err) => "J2534 error",
         }
     }
 }

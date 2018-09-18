@@ -135,7 +135,7 @@ impl Interface for SocketCan {
             if res < 0 {
                 return Err(Error::Io(io::Error::last_os_error()));
             }
-            return Err(Error::WriteError);
+            return Err(Error::IncompleteWrite);
         }
         Ok(())
     }

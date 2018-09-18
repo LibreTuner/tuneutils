@@ -7,8 +7,9 @@ respository = "https://github.com/LibreTuner/tuneutils"
 
 [dependencies]
 libc = "0.2"
+byteorder = "1.2.6"
 
-[target.'cfg(window)'.dependencies]
+[target.'cfg(windows)'.dependencies]
 j2534 = { path = "j2534" }
 
 [workspace]
