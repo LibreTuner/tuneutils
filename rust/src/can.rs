@@ -73,8 +73,34 @@ impl Message {
     }
 }
 
+impl fmt::Display for Message {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[{}] ", self.id)?;
+        for byte in self.data.iter() {
+            write!(f, "{:X}", byte)?;
+        }
+        Ok(())
+    }
+}
+
 pub trait Interface {
+    /// Sends a CAN message through the interface.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `id` - The CAN id of the message
+    /// * `message` - The message data. Must not be larger than 8 bytes
     fn send(&self, id: u32, message: &[u8]) -> Result<()>;
 
+    fn send_msg(&self, message: &Message) -> Result<()> {
+        self.send(message.id, &message.data)
+    }
+
+    /// Received a single message from the interface.
+    /// If no messages are received before the timeout, returns `Error::Timeout`
+    /// 
+    /// # Arguments
+    /// 
+    /// * `timeout` - The time to wait for a message before returning
     fn recv(&self, timeout: time::Duration) -> Result<Message>;
 }
