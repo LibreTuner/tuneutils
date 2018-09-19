@@ -92,7 +92,26 @@ impl Frame {
     }
 
     fn from_first_data(data: &[u8], size: u16) -> Frame {
+        assert!(data.len() <= 6);
 
+        let mut d = [0; 8];
+        d[0] = (0x10 | ((size & 0xF00) >> 8)) as u8;
+        d[1] = (size & 0xFF) as u8;
+        d[2..data.len() + 2].copy_from_slice(&data);
+        Frame {
+            data: d
+        }
+    }
+
+    fn from_consec_data(data: &[u8], index: u8) -> Frame {
+        assert!(data.len() <= 7);
+
+        let mut d = [0; 8];
+        d[0] = ((0x20) | (index & 0xF)) as u8;
+        d[1..=data.len()].copy_from_slice(&data);
+        Frame {
+            data: d
+        }
     }
 
     pub fn from_single(frame: &SingleFrame) -> Frame {
