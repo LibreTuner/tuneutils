@@ -1,9 +1,4 @@
-#[cfg(windows)]
+#[cfg(feature = "j2534")]
 extern crate j2534;
 
-pub mod can;
-#[cfg(linux)]
-pub mod socketcan;
-
-#[cfg(windows)]
-pub mod j2534can;
+pub mod protocols;

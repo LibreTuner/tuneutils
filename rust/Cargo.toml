@@ -5,12 +5,17 @@ authors = ["Altenius <jacobjm18@gmail.com>"]
 description = "Utilities for tuning vehicles"
 respository = "https://github.com/LibreTuner/tuneutils"
 
+[features]
+socketcan = []
+windows = ["j2534"]
+
 [dependencies]
 libc = "0.2"
 byteorder = "1.2.6"
+itertools = "0.7.8"
 
 [target.'cfg(windows)'.dependencies]
-j2534 = { path = "j2534" }
+j2534 = { path = "j2534", optional = true }
 
 [workspace]
 members = [

@@ -3,8 +3,9 @@ extern crate libc;
 use std::io;
 use std::mem;
 use std::time;
+use std::ffi;
 
-use can::{Interface, Result, Error, Message};
+use super::{Interface, Result, Error, Message};
 
 
 const AF_CAN: libc::c_int = 29;
@@ -65,8 +66,19 @@ impl Default for CanFrame {
 }
 
 impl SocketCan {
+    /// Opens a new SocketCan device
+    /// 
+    /// # Arguments
+    /// 
+    /// `ifname` - The name of the interface
+    /// 
+    /// # Example
+    /// ```
+    /// let interface = SocketCan::open("slcan0");
+    /// ```
     pub fn open(ifname: &str) -> io::Result<SocketCan> {
-        let if_index = unsafe { libc::if_nametoindex(ifname.as_ptr() as *const libc::c_char) };
+        let c_string = ffi::CString::new(ifname).unwrap();
+        let if_index = unsafe { libc::if_nametoindex(c_string.as_ptr()) };
         if if_index == 0 {
             return Err(io::Error::last_os_error());
         }

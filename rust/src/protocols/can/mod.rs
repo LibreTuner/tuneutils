@@ -1,12 +1,27 @@
-#[cfg(windows)]
+#[cfg(feature = "j2534")]
 extern crate j2534;
+extern crate itertools;
 
 use std::io;
 use std;
 use std::time;
 use std::fmt;
+use std::iter;
+use self::itertools::Itertools;
 
 use std::error::Error as StdError;
+
+
+#[cfg(feature = "j2534")]
+pub mod j2534can;
+#[cfg(feature = "j2534")]
+pub type J2534Can = j2534can::J2534Can;
+
+#[cfg(feature = "socketcan")]
+pub mod socketcan;
+#[cfg(feature = "socketcan")]
+pub type SocketCan = socketcan::SocketCan;
+
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -20,7 +35,7 @@ pub enum Error {
     IncompleteWrite,
     ReadError,
     
-    #[cfg(windows)]
+    #[cfg(feature = "j2534")]
     J2534(j2534::Error),
 }
 
@@ -34,7 +49,7 @@ impl Error {
             Error::TooMuchData => "too much data",
             Error::IncompleteWrite => "only part of the data could be written",
             Error::ReadError => "failed to read",
-            #[cfg(windows)]
+            #[cfg(feature = "j2534")]
             Error::J2534(ref _err) => "J2534 error",
         }
     }
@@ -75,15 +90,19 @@ impl Message {
 
 impl fmt::Display for Message {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[{}] ", self.id)?;
-        for byte in self.data.iter() {
-            write!(f, "{:X}", byte)?;
-        }
+        write!(f, "[{:X}] {}", self.id, self.data.iter()
+                                               .map(|x| format!("{:X}", x))
+                                               .join(" "))?;
         Ok(())
     }
 }
 
-pub trait Interface {
+/// Used to implement recv_iter
+pub trait InterfaceIterator {
+    fn recv_iter(&self, timeout: time::Duration) -> RecvIterator;
+}
+
+pub trait Interface: InterfaceIterator {
     /// Sends a CAN message through the interface.
     /// 
     /// # Arguments
@@ -103,4 +122,26 @@ pub trait Interface {
     /// 
     /// * `timeout` - The time to wait for a message before returning
     fn recv(&self, timeout: time::Duration) -> Result<Message>;
+}
+
+impl<S: Sized + Interface> InterfaceIterator for S {
+    fn recv_iter(&self, timeout: time::Duration) -> RecvIterator {
+        RecvIterator {
+            interface: self,
+            timeout
+        }
+    }
+}
+
+pub struct RecvIterator<'a> {
+    interface: &'a (Interface + 'a),
+    timeout: time::Duration,
+}
+
+impl<'a> iter::Iterator for RecvIterator<'a> {
+    type Item = Result<Message>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(self.interface.recv(self.timeout))
+    }
 }
