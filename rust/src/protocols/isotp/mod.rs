@@ -42,12 +42,12 @@ pub struct FlowControlFrame {
 }
 
 pub struct SingleFrame {
-    size: u8,
+    length: u8,
     data: [u8; 7],
 }
 
 pub struct FirstFrame {
-    size: u16,
+    length: u16,
     data: [u8; 6],
     data_length: u8,
 }
@@ -60,7 +60,6 @@ pub struct ConsecutiveFrame {
 
 pub struct Frame {
     data: [u8; 8],
-    length: u8,
 }
 
 pub trait Interface {
@@ -78,18 +77,26 @@ pub trait Interface {
 
 impl Frame {
     fn new(data: [u8; 8]) -> Frame {
-        Frame {data, length: 8}
+        Frame {data}
     }
 
-    fn from_single(data: &[u8]) -> Frame {
+    fn from_single_data(data: &[u8]) -> Frame {
         assert!(data.len() <= 7);
 
-        let d = [0; 8];
-        d[..data.len()].copy_from_slice(&data);
+        let mut d = [0; 8];
+        d[0] = data.len() as u8; // Single Frame id (0 << 4) | size
+        d[1..=data.len()].copy_from_slice(&data);
         Frame {
             data: d,
-            length: data.len() as u8
         }
+    }
+
+    fn from_first_data(data: &[u8], size: u16) -> Frame {
+
+    }
+
+    pub fn from_single(frame: &SingleFrame) -> Frame {
+        Self::from_single_data(&frame.data[..frame.length as usize])
     }
 
     fn get_type(&self) -> Option<FrameType> {

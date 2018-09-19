@@ -1,27 +1,24 @@
 use protocols::can::Interface as Can;
 
-use super::{Interface, Result, Error, Frame, FrameType};
+use super::{Interface, Result, Error, Frame, FrameType, Options};
 
-pub struct CanInterface {
-    can: Box<Can>,
+pub struct CanInterface<'a> {
+    can: &'a Can,
+    options: Options,
 }
 
-impl CanInterface {
-    fn new(can: Box<Can>) -> CanInterface {
-        CanInterface {can}
+impl<'a> CanInterface<'a> {
+    pub fn new(can: &Can, options: Options) -> CanInterface {
+        CanInterface {can, options}
     }
 
-    fn send_single_frame(&self, data: &[u8]) -> Result<()> {
-        debug_assert!(data.len() <= 7);
-
-    }
-
-    fn send_first_frame(&self, data: &[u8]) -> Result<()> {
-
+    fn send_frame(&self, frame: &Frame) -> Result<()> {
+        self.can.send(self.options.dest_id, &frame.data)?;
+        Ok(())
     }
 }
 
-impl Interface for CanInterface {
+impl<'a> Interface for CanInterface<'a> {
     fn recv(&self) -> Result<Vec<u8>> {
         
     }
@@ -29,10 +26,10 @@ impl Interface for CanInterface {
     fn send(&self, data: &[u8]) -> Result<()> {
         if data.len() <= 7 {
             // Send a single frame
-            self.send_single_frame(&data);
+            self.send_frame(Frame::from_single(&data));
         } else {
             // Send a first frame
-            self.send_first_frame(&data[..6]);
+            self.send_frame(Frame::from_first(&data[..6]));
             // Get flow control and send consecutive frames
         }
     }
