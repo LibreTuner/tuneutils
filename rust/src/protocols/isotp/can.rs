@@ -11,12 +11,12 @@ impl CanInterface {
         CanInterface {can}
     }
 
-    fn send_single_frame(data: &[u8]) -> Result<()> {
+    fn send_single_frame(&self, data: &[u8]) -> Result<()> {
         debug_assert!(data.len() <= 7);
 
     }
 
-    fn send_first_frame(data: &[u8]) -> Result<()> {
+    fn send_first_frame(&self, data: &[u8]) -> Result<()> {
 
     }
 }
@@ -29,10 +29,10 @@ impl Interface for CanInterface {
     fn send(&self, data: &[u8]) -> Result<()> {
         if data.len() <= 7 {
             // Send a single frame
-            self.send_single_frame(data);
+            self.send_single_frame(&data);
         } else {
             // Send a first frame
-            send_first_frame(data[..6]);
+            self.send_first_frame(&data[..6]);
             // Get flow control and send consecutive frames
         }
     }

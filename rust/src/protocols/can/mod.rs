@@ -15,7 +15,7 @@ use std::error::Error as StdError;
 #[cfg(feature = "j2534")]
 pub mod j2534can;
 #[cfg(feature = "j2534")]
-pub type J2534Can = j2534can::J2534Can;
+pub type J2534Can<'a> = j2534can::J2534Can<'a>;
 
 #[cfg(feature = "socketcan")]
 pub mod socketcan;

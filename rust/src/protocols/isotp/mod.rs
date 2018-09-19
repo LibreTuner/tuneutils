@@ -58,8 +58,9 @@ pub struct ConsecutiveFrame {
     data_length: u8,
 }
 
-pub struct Frame<'a> {
-    data: &'a [u8],
+pub struct Frame {
+    data: [u8; 8],
+    length: u8,
 }
 
 pub trait Interface {
@@ -75,9 +76,20 @@ pub trait Interface {
 }
 
 
-impl<'a> Frame<'a> {
-    fn new(data: &[u8]) -> Frame {
-        Frame {data}
+impl Frame {
+    fn new(data: [u8; 8]) -> Frame {
+        Frame {data, length: 8}
+    }
+
+    fn from_single(data: &[u8]) -> Frame {
+        assert!(data.len() <= 7);
+
+        let d = [0; 8];
+        d[..data.len()].copy_from_slice(&data);
+        Frame {
+            data: d,
+            length: data.len() as u8
+        }
     }
 
     fn get_type(&self) -> Option<FrameType> {

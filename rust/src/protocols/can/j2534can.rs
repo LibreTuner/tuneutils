@@ -6,7 +6,7 @@ use std::time;
 use self::byteorder::{WriteBytesExt, ReadBytesExt, BigEndian};
 use std::io::{Write, Read};
 
-use can::{Interface, Result, Error, Message};
+use protocols::can::{Interface, Result, Error, Message};
 
 
 impl From<j2534::Error> for Error {
