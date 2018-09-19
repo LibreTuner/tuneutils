@@ -7,6 +7,7 @@ pub enum Error {
     Io(io::Error),
     Can(CanError),
     Timeout,
+    InvalidFrame,
 }
 
 pub type Result<T> = result::Result<T, Error>;

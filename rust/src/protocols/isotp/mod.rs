@@ -30,9 +30,9 @@ pub enum FrameType {
 }
 
 pub enum FCFlag {
-    Continue = 0,
-    Wait = 1,
-    Overflow = 2,
+    Continue,
+    Wait,
+    Overflow,
 }
 
 pub struct FlowControlFrame {
@@ -46,10 +46,43 @@ pub struct SingleFrame {
     data: [u8; 7],
 }
 
+impl SingleFrame {
+    fn new(frame: &[u8]) -> Result<SingleFrame> {
+        if (frame.len() == 0) {
+            return Err(Error::InvalidFrame);
+        }
+        if frame[0] & 0xF0 != 0 {
+            // Not a single frame
+            return Err(Error::InvalidFrame);
+        }
+        let len = ops::min(7, frame[0] & 0x0F);
+        let mut data = [0; 7];
+        data[1..=len].copy_from_slice(&frame[1..]);
+        Ok(SingleFrame {
+            data,
+            length: len,
+        })
+    }
+}
+
 pub struct FirstFrame {
     length: u16,
     data: [u8; 6],
-    data_length: u8,
+}
+
+impl FirstFrame {
+    fn new(frame: [&u8]) -> Result<FirstFrame> {
+        if frame.len() < 2 {
+            return Err(Error::InvalidFrame);
+        }
+        if frame[0] & 0xF0 != 1 {
+            // Not a first frame
+            return Err(Error::InvalidFrame);
+        }
+        let length = ((frame[0] & 0x0F) << 8) | frame[1];
+        let data_length = ops::min(frame.len(), ops::min(length, 6));
+        Ok()
+    }
 }
 
 pub struct ConsecutiveFrame {
