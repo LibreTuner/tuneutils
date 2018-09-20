@@ -1,10 +1,15 @@
 extern crate tuneutils;
 
 use tuneutils::protocols::can;
+use tuneutils::protocols::isotp;
 
-use can::{Interface, InterfaceIterator};
+use can::Interface as CanInterface;
+use can::InterfaceIterator as CanInterfaceIterator;
+use isotp::Interface as IsotpInterface;
 #[cfg(feature = "socketcan")]
 use can::SocketCan;
+
+use std::str;
 
 #[cfg(feature = "j2534")]
 extern crate j2534;
@@ -26,7 +31,13 @@ fn main() {
 #[cfg(feature = "socketcan")]
 fn main() {
     let can = SocketCan::open("slcan0").expect("Failed to find slcan0");
-    for msg in can.recv_iter(std::time::Duration::from_secs(1)) {
-        println!("Message: {}", msg.unwrap());
-    }
+    
+    let iface = isotp::can::CanInterface::new(&can, isotp::Options::default());
+
+    let response = iface.request(&[9, 2]).unwrap();
+    let _uds_res = response[0];
+    let _pid = response[1];
+
+    let vin = str::from_utf8(&response[3..]).unwrap();
+    println!("Response: {}", vin);
 }

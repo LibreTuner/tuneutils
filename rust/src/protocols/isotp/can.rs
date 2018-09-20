@@ -1,6 +1,6 @@
 use protocols::can::Interface as Can;
 
-use super::{Interface, Result, Error, Frame, FrameType, Options, FCFlag, FlowControlFrame};
+use super::{Interface, Result, Error, Frame, FrameType, Options, FCFlag, FlowControlFrame, FirstFrame, SingleFrame};
 use std::cmp;
 use std::time;
 use std::thread;
@@ -23,15 +23,19 @@ impl<'a> CanInterface<'a> {
     }
 
     fn send_frame(&self, frame: &Frame) -> Result<()> {
-        self.can.send(self.options.dest_id, &frame.data)?;
+        self.can.send(self.options.source_id, &frame.data)?;
         Ok(())
+    }
+
+    fn send_flow_control_frame(&self, flow: FlowControlFrame) -> Result<()> {
+        self.send_frame(&Frame::from_flow(flow))
     }
 
     fn recv_frame(&self) -> Result<Frame> {
         let start_time = time::Instant::now();
         for msg in self.can.recv_iter(self.options.timeout) {
             let msg = msg?;
-            if msg.id == self.options.source_id {
+            if msg.id == self.options.dest_id {
                 let mut data = [0; 8];
                 data[..msg.data.len()].copy_from_slice(&msg.data);
                 return Ok(Frame::new(data));
@@ -57,6 +61,7 @@ impl<'a> CanInterface<'a> {
             0 => FCFlag::Continue,
             1 => FCFlag::Wait,
             2 => FCFlag::Overflow,
+            _ => FCFlag::Continue, // This will never happen because of the above check but rust complains
         };
 
         Ok(FlowControlFrame {
@@ -108,13 +113,50 @@ impl<'a> Interface for CanInterface<'a> {
     fn recv(&self) -> Result<Vec<u8>> {
         // Receive first or single frame
         let frame = self.recv_frame()?;
-        let frame_id = frame[0] & 0xF0;
+        let frame_id = frame.data[0] & 0xF0;
+        
         if frame_id == 0 {
             // Single frame
-            
-        } else if frame_id == 1 {
+            let single_frame = SingleFrame::new(&frame.data)?;
+            return Ok(single_frame.data[..single_frame.length as usize].to_vec());
+        } else if frame_id == 0x10 {
             // First frame
+            let first_frame = FirstFrame::new(&frame.data)?;
+
+            let mut buffer = Vec::new();
+            buffer.extend_from_slice(&first_frame.data);
+
+            let mut remaining = first_frame.length as usize - buffer.len();
+            // Send the flow control frame
+            self.send_flow_control_frame(FlowControlFrame {
+                flag: FCFlag::Continue,
+                block_size: 0,
+                separation_time: st_to_duration(0)
+            })?;
+
+            // Wait for all consecutive packets
+            let mut index = 1;
+            while remaining > 0 {
+                let frame = self.recv_frame()?;
+                let id = frame.data[0] & 0xF0;
+                if id != 0x20 {
+                    // Not a consec frame
+                    return Err(Error::InvalidFrame);
+                }
+                if frame.data[0] & 0x0F != index {
+                    // Invalid index
+                    return Err(Error::InvalidFrame);
+                }
+
+                let len = cmp::min(remaining, 7);
+                buffer.extend_from_slice(&frame.data[1..=len]);
+                remaining -= len;
+
+                index += 1;
+            }
+            return Ok(buffer);
         }
+        Err(Error::InvalidFrame)
     }
 
     fn send(&self, data: &[u8]) -> Result<()> {

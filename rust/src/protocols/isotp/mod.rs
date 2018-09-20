@@ -5,6 +5,7 @@ pub mod error;
 pub mod can;
 
 use self::error::{Error, Result};
+use std::cmp;
 
 pub struct Options {
     source_id: u32,
@@ -29,18 +30,21 @@ pub enum FrameType {
     Flow,
 }
 
+#[derive(Debug)]
 pub enum FCFlag {
-    Continue,
-    Wait,
-    Overflow,
+    Continue = 0,
+    Wait = 1,
+    Overflow = 2,
 }
 
+#[derive(Debug)]
 pub struct FlowControlFrame {
     flag: FCFlag,
     block_size: u8,
     separation_time: time::Duration,
 }
 
+#[derive(Debug)]
 pub struct SingleFrame {
     length: u8,
     data: [u8; 7],
@@ -48,16 +52,16 @@ pub struct SingleFrame {
 
 impl SingleFrame {
     fn new(frame: &[u8]) -> Result<SingleFrame> {
-        if (frame.len() == 0) {
+        if frame.len() == 0 {
             return Err(Error::InvalidFrame);
         }
         if frame[0] & 0xF0 != 0 {
             // Not a single frame
             return Err(Error::InvalidFrame);
         }
-        let len = ops::min(7, frame[0] & 0x0F);
+        let len = cmp::min(7, frame[0] & 0x0F);
         let mut data = [0; 7];
-        data[1..=len].copy_from_slice(&frame[1..]);
+        data[1..=len as usize].copy_from_slice(&frame[1..]);
         Ok(SingleFrame {
             data,
             length: len,
@@ -65,23 +69,30 @@ impl SingleFrame {
     }
 }
 
+#[derive(Debug)]
 pub struct FirstFrame {
     length: u16,
     data: [u8; 6],
 }
 
 impl FirstFrame {
-    fn new(frame: [&u8]) -> Result<FirstFrame> {
+    fn new(frame: &[u8]) -> Result<FirstFrame> {
+        assert!(frame.len() <= 8);
         if frame.len() < 2 {
             return Err(Error::InvalidFrame);
         }
-        if frame[0] & 0xF0 != 1 {
+        if frame[0] & 0xF0 != 0x10 {
             // Not a first frame
             return Err(Error::InvalidFrame);
         }
-        let length = ((frame[0] & 0x0F) << 8) | frame[1];
-        let data_length = ops::min(frame.len(), ops::min(length, 6));
-        Ok()
+        let length = ((frame[0] as u16 & 0x0F) << 8) | frame[1] as u16;
+        let data_length = cmp::min(frame.len() - 2, cmp::min(length as usize, 6));
+        let mut data = [0; 6];
+        data[..data_length].copy_from_slice(&frame[2..data_length+2]);
+        Ok(FirstFrame {
+            length,
+            data,
+        })
     }
 }
 
@@ -91,6 +102,7 @@ pub struct ConsecutiveFrame {
     data_length: u8,
 }
 
+#[derive(Debug)]
 pub struct Frame {
     data: [u8; 8],
 }
@@ -102,11 +114,20 @@ pub trait Interface {
     /// Sends an ISO-TP packet
     fn send(&self, data: &[u8]) -> Result<()>;
 
-    // fn request(&self, request: &[u8]) -> Result<Vec<u8>>;
+    fn request(&self, request: &[u8]) -> Result<Vec<u8>> {
+        self.send(&request)?;
+        self.recv()
+    }
     
 
 }
 
+fn duration_to_st(duration: time::Duration) -> u8 {
+    if duration.subsec_micros() <= 900 && duration.subsec_micros() >= 100 {
+        return (cmp::max(duration.subsec_micros() / 100, 1) + 0xF0) as u8;
+    }
+    duration.subsec_micros() as u8
+}
 
 impl Frame {
     fn new(data: [u8; 8]) -> Frame {
@@ -122,6 +143,14 @@ impl Frame {
         Frame {
             data: d,
         }
+    }
+
+    fn from_flow(flow: FlowControlFrame) -> Frame {
+        let mut frame = Frame {data: [0; 8]};
+        frame.data[0] = 0x30 | (flow.flag as u8);
+        frame.data[1] = flow.block_size;
+        frame.data[2] = duration_to_st(flow.separation_time);
+        frame
     }
 
     fn from_first_data(data: &[u8], size: u16) -> Frame {

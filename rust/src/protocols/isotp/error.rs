@@ -3,6 +3,7 @@ use std::result;
 
 use protocols::can::Error as CanError;
 
+#[derive(Debug)]
 pub enum Error {
     Io(io::Error),
     Can(CanError),
