@@ -2,10 +2,15 @@ extern crate tuneutils;
 
 use tuneutils::protocols::can;
 use tuneutils::protocols::isotp;
+use tuneutils::protocols::uds::{UdsInterface, UdsIsotp};
+use tuneutils::download;
+use tuneutils::download::Downloader;
+use tuneutils::definition;
 
-use can::Interface as CanInterface;
-use can::InterfaceIterator as CanInterfaceIterator;
-use isotp::Interface as IsotpInterface;
+use std::path::Path;
+
+use can::{CanInterface, CanInterfaceIterator};
+use isotp::IsotpInterface;
 #[cfg(feature = "socketcan")]
 use can::SocketCan;
 
@@ -30,14 +35,18 @@ fn main() {
 
 #[cfg(feature = "socketcan")]
 fn main() {
+    let mut defs = definition::Definitions::default();
+    defs.load(&Path::new("/home/altenius/projects/LibreTuner/src/resources/definitions")).unwrap();
+    println!("Definitions: {:?}", defs.definitions);
+    /*
     let can = SocketCan::open("slcan0").expect("Failed to find slcan0");
     
-    let iface = isotp::can::CanInterface::new(&can, isotp::Options::default());
+    let iface = isotp::IsotpCan::new(&can, isotp::Options::default());
+    let uds = UdsIsotp::new(&iface);
 
-    let response = iface.request(&[9, 2]).unwrap();
-    let _uds_res = response[0];
-    let _pid = response[1];
+    let downloader = download::mazda::Mazda1Downloader::new(&uds, "MazdA", 1024*5);
+    println!("Downloading");
+    let data = downloader.download().unwrap();
 
-    let vin = str::from_utf8(&response[3..]).unwrap();
-    println!("Response: {}", vin);
+    println!("Got data: {:?}", data.data);*/
 }

@@ -6,7 +6,7 @@ use std::time;
 use self::byteorder::{WriteBytesExt, ReadBytesExt, BigEndian};
 use std::io::{Write, Read};
 
-use protocols::can::{Interface, Result, Error, Message};
+use protocols::can::{CanInterface, Result, Error, Message};
 
 
 impl From<j2534::Error> for Error {
@@ -46,7 +46,7 @@ impl<'a> J2534Can<'a> {
     }
 }
 
-impl<'a> Interface for J2534Can<'a> {
+impl<'a> CanInterface for J2534Can<'a> {
     /// Sends a CAN message through the PassThru channel.
     /// 
     /// # Arguments

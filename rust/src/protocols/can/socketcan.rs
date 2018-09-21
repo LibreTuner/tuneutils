@@ -5,7 +5,7 @@ use std::mem;
 use std::time;
 use std::ffi;
 
-use super::{Interface, Result, Error, Message};
+use super::{CanInterface, Result, Error, Message};
 
 
 const AF_CAN: libc::c_int = 29;
@@ -129,7 +129,7 @@ impl Drop for SocketCan {
     }
 }
 
-impl Interface for SocketCan {
+impl CanInterface for SocketCan {
     fn send(&self, id: u32, message: &[u8]) -> Result<()> {
         if message.len() > 8 {
             return Err(Error::TooMuchData);

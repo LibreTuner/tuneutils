@@ -4,6 +4,8 @@ use std::default::Default;
 pub mod error;
 pub mod can;
 
+pub type IsotpCan<'a> = can::IsotpCan<'a>;
+
 use self::error::{Error, Result};
 use std::cmp;
 
@@ -52,19 +54,19 @@ pub struct SingleFrame {
 
 impl SingleFrame {
     fn new(frame: &[u8]) -> Result<SingleFrame> {
-        if frame.len() == 0 {
+        if frame.is_empty() {
             return Err(Error::InvalidFrame);
         }
         if frame[0] & 0xF0 != 0 {
             // Not a single frame
             return Err(Error::InvalidFrame);
         }
-        let len = cmp::min(7, frame[0] & 0x0F);
+        let len = cmp::min(7, frame[0] & 0x0F) as usize;
         let mut data = [0; 7];
-        data[1..=len as usize].copy_from_slice(&frame[1..]);
+        data[0..len].copy_from_slice(&frame[1..=len]);
         Ok(SingleFrame {
             data,
-            length: len,
+            length: len as u8,
         })
     }
 }
@@ -107,7 +109,7 @@ pub struct Frame {
     data: [u8; 8],
 }
 
-pub trait Interface {
+pub trait IsotpInterface {
     /// Receives an ISO-TP packet
     fn recv(&self) -> Result<Vec<u8>>;
 
@@ -181,7 +183,7 @@ impl Frame {
     }
 
     fn get_type(&self) -> Option<FrameType> {
-        if self.data.len() == 0 {
+        if self.data.is_empty() {
             return None;
         }
 

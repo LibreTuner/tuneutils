@@ -9,8 +9,6 @@ use std::fmt;
 use std::iter;
 use self::itertools::Itertools;
 
-use std::error::Error as StdError;
-
 
 #[cfg(feature = "j2534")]
 pub mod j2534can;
@@ -79,8 +77,8 @@ pub struct Message {
     pub data: Vec<u8>,
 }
 
-impl Message {
-    pub fn new() -> Message {
+impl Default for Message {
+    fn default() -> Message {
         Message {
             id: 0,
             data: Vec::new(),
@@ -98,11 +96,11 @@ impl fmt::Display for Message {
 }
 
 /// Used to implement recv_iter
-pub trait InterfaceIterator {
+pub trait CanInterfaceIterator {
     fn recv_iter(&self, timeout: time::Duration) -> RecvIterator;
 }
 
-pub trait Interface: InterfaceIterator {
+pub trait CanInterface: CanInterfaceIterator {
     /// Sends a CAN message through the interface.
     /// 
     /// # Arguments
@@ -124,7 +122,7 @@ pub trait Interface: InterfaceIterator {
     fn recv(&self, timeout: time::Duration) -> Result<Message>;
 }
 
-impl<S: Sized + Interface> InterfaceIterator for S {
+impl<S: Sized + CanInterface> CanInterfaceIterator for S {
     fn recv_iter(&self, timeout: time::Duration) -> RecvIterator {
         RecvIterator {
             interface: self,
@@ -134,7 +132,7 @@ impl<S: Sized + Interface> InterfaceIterator for S {
 }
 
 pub struct RecvIterator<'a> {
-    interface: &'a (Interface + 'a),
+    interface: &'a (CanInterface + 'a),
     timeout: time::Duration,
 }
 

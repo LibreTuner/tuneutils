@@ -1,12 +1,12 @@
-use protocols::can::Interface as Can;
+use protocols::can::CanInterface;
 
-use super::{Interface, Result, Error, Frame, FrameType, Options, FCFlag, FlowControlFrame, FirstFrame, SingleFrame};
+use super::{IsotpInterface, Result, Error, Frame, Options, FCFlag, FlowControlFrame, FirstFrame, SingleFrame};
 use std::cmp;
 use std::time;
 use std::thread;
 
-pub struct CanInterface<'a> {
-    can: &'a Can,
+pub struct IsotpCan<'a> {
+    can: &'a CanInterface,
     options: Options,
 }
 
@@ -17,9 +17,9 @@ fn st_to_duration(st: u8) -> time::Duration {
     time::Duration::from_micros(st as u64)
 }
 
-impl<'a> CanInterface<'a> {
-    pub fn new(can: &Can, options: Options) -> CanInterface {
-        CanInterface {can, options}
+impl<'a> IsotpCan<'a> {
+    pub fn new(can: &CanInterface, options: Options) -> IsotpCan {
+        IsotpCan {can, options}
     }
 
     fn send_frame(&self, frame: &Frame) -> Result<()> {
@@ -105,16 +105,16 @@ impl<'a> SendPacket<'a> {
     }
 
     fn eof(&self) -> bool {
-        self.buffer.len() == 0
+        self.buffer.is_empty()
     }
 }
 
-impl<'a> Interface for CanInterface<'a> {
+impl<'a> IsotpInterface for IsotpCan<'a> {
     fn recv(&self) -> Result<Vec<u8>> {
         // Receive first or single frame
         let frame = self.recv_frame()?;
         let frame_id = frame.data[0] & 0xF0;
-        
+
         if frame_id == 0 {
             // Single frame
             let single_frame = SingleFrame::new(&frame.data)?;
@@ -153,6 +153,9 @@ impl<'a> Interface for CanInterface<'a> {
                 remaining -= len;
 
                 index += 1;
+                if index == 16 {
+                    index = 0;
+                }
             }
             return Ok(buffer);
         }
@@ -186,6 +189,6 @@ impl<'a> Interface for CanInterface<'a> {
                 }
             }
         }
-        return Ok(())
+        Ok(())
     }
 }
