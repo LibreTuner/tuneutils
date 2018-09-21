@@ -5,6 +5,7 @@ use serde::de::{self, Visitor};
 use std::fmt;
 use std::result;
 use std::default;
+use std::collections::HashMap;
 
 use std::path::Path;
 use std::fs::{self, DirEntry};
@@ -136,17 +137,6 @@ fn min_table_constraint() -> f64 {
 	f64::MIN
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TableOffset {
-	pub id: usize,
-	pub offset: usize,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct AxisOffset {
-	pub id: usize,
-	pub offset: usize,
-}
 
 /// A specific model of an ECU e.g. Mazdaspeed6 made in 2006 for California
 #[derive(Debug, Deserialize, Serialize)]
@@ -154,13 +144,15 @@ pub struct Model {
 	pub id: String,
 	pub name: String,
 
-	#[serde(rename = "table")]
+	#[serde(rename = "tables")]
 	#[serde(default)]
-	pub table_offsets: Vec<TableOffset>,
+	// <id, offset>
+	pub table_offsets: HashMap<usize, usize>,
 
-	#[serde(rename = "axis")]
+	#[serde(rename = "axes")]
 	#[serde(default)]
-	pub axis_offsets: Vec<AxisOffset>,
+	// <id, offset>
+	pub axis_offsets: HashMap<String, usize>,
 
 	#[serde(default)]
 	pub identifiers: Vec<Identifier>,
@@ -257,7 +249,7 @@ impl Definitions {
 				for entry in fs::read_dir(path)? {
 					let entry = entry?;
 					let path = entry.path();
-					
+
 					if !path.is_file() { continue; }
 					if let Some(ext) = path.extension() {
 						if ext != "yaml" { continue; }
