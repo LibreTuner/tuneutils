@@ -1,14 +1,12 @@
 extern crate serde_yaml;
 
-use serde::Deserialize;
-use serde::de::{self, Visitor};
-use std::fmt;
+use std::rc::Rc;
 use std::result;
 use std::default;
 use std::collections::HashMap;
 
 use std::path::Path;
-use std::fs::{self, DirEntry};
+use std::fs;
 use std::convert;
 use std::io::{self, Read};
 
@@ -192,7 +190,14 @@ pub struct Main {
 	pub vins: Vec<String>,
 
 	#[serde(skip)]
-	pub models: Vec<Model>,
+	pub models: Vec<Rc<Model>>,
+}
+
+impl Main {
+	/// Searches for a model that matches the id
+	pub fn find(&self, id: &str) -> Option<&Rc<Model>> {
+		self.models.iter().find(|&model| model.id == id)
+	}
 }
 
 pub type Result<T> = result::Result<T, Error>;
@@ -216,7 +221,7 @@ impl convert::From<io::Error> for Error {
 }
 
 pub struct Definitions {
-	pub definitions: Vec<Main>,
+	pub definitions: Vec<Rc<Main>>,
 }
 
 impl default::Default for Definitions {
@@ -238,11 +243,7 @@ impl Definitions {
 				}
 
 				// Open it
-				let mut contents = String::new();
-				{
-					let mut file = fs::File::open(main_path)?;
-					file.read_to_string(&mut contents)?;
-				}
+				let mut contents = fs::read_to_string(main_path)?;
 				let mut main: Main = serde_yaml::from_str(&contents)?;
 
 				// Load models
@@ -266,13 +267,18 @@ impl Definitions {
 						file.read_to_string(&mut contents)?;
 					}
 					let model: Model = serde_yaml::from_str(&contents)?;
-					main.models.push(model);
+					main.models.push(Rc::new(model));
 				}
 
-				self.definitions.push(main);
+				self.definitions.push(Rc::new(main));
 			}
 		}
 
 		Ok(())
+	}
+
+	/// Searches for the main definition with the matching id
+	pub fn find(&self, id: &str) -> Option<&Rc<Main>> {
+		self.definitions.iter().find(|&def| def.id == id)
 	}
 }

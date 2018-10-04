@@ -14,7 +14,6 @@ use isotp::IsotpInterface;
 #[cfg(feature = "socketcan")]
 use can::SocketCan;
 
-use std::str;
 
 #[cfg(feature = "j2534")]
 extern crate j2534;
