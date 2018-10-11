@@ -26,10 +26,10 @@ fn main() {
         let device = interface.open_any().unwrap();
         let can = can::J2534Can::connect(&device, 500000).unwrap();
         can.apply_blank_filter().unwrap();
-        loop {
-            let msg = can.recv(std::time::Duration::from_secs(1)).unwrap();
-            println!("Message: {:?}", msg);
-        }
+        let iface = isotp::IsotpCan::new(&can, isotp::Options::default());
+        let uds = UdsIsotp::new(&iface);
+        
+        println!("{:?}", uds.request(0x01, &[0x05]));
     }
 }
 
