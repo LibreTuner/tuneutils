@@ -5,8 +5,10 @@ extern crate serde;
 #[cfg(feature = "j2534")]
 extern crate j2534;
 
+pub mod numvariant;
 pub mod protocols;
 pub mod download;
 pub mod authenticator;
 pub mod definition;
 pub mod rom;
+pub mod datalog;

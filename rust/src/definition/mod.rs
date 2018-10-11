@@ -58,7 +58,7 @@ pub enum Endianness {
 
 #[serde(rename_all = "lowercase")]
 #[derive(Debug, Serialize, Deserialize)]
-pub enum TableType {
+pub enum DataType {
 	Uint8,
     Uint16,
     Uint32,
@@ -93,7 +93,7 @@ pub struct Table {
 	pub name: String,
 	pub description: String,
 	pub category: String,
-	pub data_type: TableType,
+	pub data_type: DataType,
 
 	#[serde(default = "default_table_dimension")]
 	pub width: isize,
@@ -117,6 +117,7 @@ pub struct Pid {
 	pub description: String,
 	pub formula: String,
 	pub unit: String,
+	pub datatype: DataType,
 	pub id: u32,
 	pub code: u16,
 }
