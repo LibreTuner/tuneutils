@@ -1,6 +1,8 @@
 extern crate serde_yaml;
 
-use std::rc::Rc;
+use std::cell::RefCell;
+use std::rc::{Rc, Weak};
+use std::collections::HashMap;
 use std::result;
 use std::io;
 use std::fs;
@@ -21,6 +23,10 @@ pub enum Error {
 	Io(io::Error),
 	InvalidMainId,
 	InvalidModelId,
+	InvalidRomId,
+	NotLoaded,
+	InvalidTableId,
+	NoTableOffset,
 }
 
 impl convert::From<serde_yaml::Error> for Error {
@@ -35,47 +41,38 @@ impl convert::From<io::Error> for Error {
 	}
 }
 
-
-
+#[derive(Debug)]
 pub struct Rom {
-	model: Rc<definition::Model>,
-	main: Rc<definition::Main>,
-	name: String,
+	meta: RomMeta,
 	data: Vec<u8>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct RomMeta {
+pub struct RomData {
 	name: String,
 	id: String,
 	main_name: String,
 	model_name: String,
-
-	#[serde(skip)]
-	data_path: PathBuf,
 }
 
-impl Rom {
-	pub fn load(meta: &RomMeta, definitions: &definition::Definitions) -> Result<Rom> {
-		let main = definitions.find(&meta.main_name).ok_or(Error::InvalidMainId)?;
-		let model = main.find(&meta.model_name).ok_or(Error::InvalidModelId)?;
-		let data = fs::read(&meta.data_path)?;
+#[derive(Debug, Clone)]
+pub struct RomMeta {
+	pub name: String,
+	pub id: String,
+	pub model: Rc<definition::Model>,
+	pub main: Rc<definition::Main>,
 
-		Ok(Rom {
-			model: model.clone(),
-			main: main.clone(),
-			name: meta.name.clone(),
-			data,
-		})
-	}
+	pub data_path: PathBuf,
 }
 
-pub struct Manager {
+
+pub struct RomManager {
 	roms: Vec<RomMeta>,
+	loaded_roms: RefCell<HashMap<String, Weak<Rom>>>,
 }
 
-impl Manager {
-	pub fn load(&mut self, base: &Path) -> Result<()> {
+impl RomManager {
+	pub fn load(&mut self, base: &Path, definitions: &definition::Definitions) -> Result<()> {
 		for entry in fs::read_dir(base)? {
 			let entry = entry?;
 
@@ -91,11 +88,47 @@ impl Manager {
 			}
 
 			let contents = fs::read_to_string(path)?;
-			let mut meta: RomMeta = serde_yaml::from_str(&contents)?;
-			meta.data_path = base.join(&meta.id);
-			self.roms.push(meta);
+			let data: RomData = serde_yaml::from_str(&contents)?;
+			let main = definitions.find(&data.main_name).ok_or(Error::InvalidMainId)?;
+			let model = main.find(&data.model_name).ok_or(Error::InvalidModelId)?;
+
+			self.roms.push(RomMeta {
+				data_path: base.join(&data.id),
+				
+				id: data.id,
+				name: data.name,
+				main: main.clone(),
+				model: model.clone(),
+			});
 		}
 
 		Ok(())
+	}
+
+	/// Searches for a ROM meta with the specified id
+	pub fn search(&self, id: &str) -> Option<&RomMeta> {
+		self.roms.iter().find(|ref rom| rom.id == id)
+	}
+
+	/// Loads a ROM or retrieves it from the cache.
+	pub fn load_rom(&self, meta: &RomMeta) -> Result<Rc<Rom>> {
+		// Check if the ROM is cached
+		let mut loaded_roms = self.loaded_roms.borrow_mut();
+		if let Some(ptr) = loaded_roms.get(&meta.id) {
+			// Check if the pointer is valid
+			if let Some(rom) = ptr.upgrade() {
+				return Ok(rom);
+			}
+		}
+		// The ROM is not cached so we load it (and cache it)
+		let data = fs::read(&meta.data_path)?;
+
+		let rom = Rc::new(Rom {
+			meta: meta.clone(),
+			data,
+		});
+		// Cache it
+		loaded_roms.insert(meta.name.clone(), Rc::downgrade(&rom));
+		Ok(rom)
 	}
 }

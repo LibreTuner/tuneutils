@@ -24,7 +24,7 @@ impl default::Default for DownloadMode {
 }
 
 #[serde(rename_all = "lowercase")]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum FlashMode {
 	Mazda1,
 	None,
@@ -37,7 +37,7 @@ impl default::Default for FlashMode {
 }
 
 #[serde(rename_all = "lowercase")]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum LogMode {
 	Uds,
 	None,
@@ -50,22 +50,25 @@ impl default::Default for LogMode {
 }
 
 #[serde(rename_all = "lowercase")]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum Endianness {
 	Big,
 	Little,
 }
 
 #[serde(rename_all = "lowercase")]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum DataType {
 	Uint8,
     Uint16,
     Uint32,
-    Float,
+    Uint64,
+    Float32,
+    Float64,
     Int8,
     Int16,
     Int32,
+    Int64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -89,16 +92,16 @@ pub struct Axis {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Table {
-	pub id: isize,
+	pub id: usize,
 	pub name: String,
 	pub description: String,
 	pub category: String,
 	pub data_type: DataType,
 
 	#[serde(default = "default_table_dimension")]
-	pub width: isize,
+	pub width: usize,
 	#[serde(default = "default_table_dimension")]
-	pub height: isize,
+	pub height: usize,
 
 	#[serde(default = "max_table_constraint")]
 	pub maximum: f64,
@@ -122,7 +125,7 @@ pub struct Pid {
 	pub code: u16,
 }
 
-fn default_table_dimension() -> isize {
+fn default_table_dimension() -> usize {
 	1
 }
 
@@ -179,6 +182,7 @@ pub struct Main {
 	pub baudrate: u32,
 	#[serde(default)]
 	pub log_mode: LogMode,
+	pub endianness: Endianness,
 
 	// Flash region
 	pub flash_offset: usize,
