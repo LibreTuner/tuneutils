@@ -221,6 +221,7 @@ impl Tune {
 
 	/// Gets or loads a table.
 	pub fn get_or_load_table(&mut self, id: usize) -> Result<&Table> {
+		// This is an ugly pattern but we can't fix this without NLL
 		if self.tables.contains_key(&id) {
 			return self.tables.get(&id).ok_or(Error::InvalidTableId); // This should never error
 		}
