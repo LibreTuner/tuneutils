@@ -7,12 +7,15 @@ extern crate bv;
 use self::bv::BitVec;
 
 use std::fs;
+use std::io;
 use std::path::{PathBuf, Path};
 use std::rc::Rc;
 use std::collections::HashMap;
+use std::convert;
+use std::marker;
 
 use self::num_traits::{Num, PrimInt, AsPrimitive};
-use self::byteorder::{ByteOrder, BigEndian, LittleEndian, ReadBytesExt};
+use self::byteorder::{ByteOrder, BigEndian, LittleEndian, ReadBytesExt, WriteBytesExt};
 
 use super::{Error, Result, Rom, RomManager};
 
@@ -29,70 +32,190 @@ pub struct TableMeta {
 	description: String,
 }
 
-pub fn deserialize_table<O: ByteOrder>(datatype: DataType, data: &[u8], size: usize) -> Result<Vec<NumVariant>> {
-	let mut reader = data;
-	let mut data = Vec::new();
-	match datatype {
-		DataType::Uint8 => {
-			for _ in 0..size {
-				data.push(NumVariant::from(reader.read_u8()?));
-			}
-		},
-		DataType::Uint16 => {
-			for _ in 0..size {
-				data.push(NumVariant::from(reader.read_u16::<O>()?));
-			}
-		},
-		DataType::Uint32 => {
-			for _ in 0..size {
-				data.push(NumVariant::from(reader.read_u32::<O>()?));
-			}
-		},
-		DataType::Uint64 => {
-			for _ in 0..size {
-				data.push(NumVariant::from(reader.read_u64::<O>()?));
-			}
-		}
-		DataType::Int8 => {
-			for _ in 0..size {
-				data.push(NumVariant::from(reader.read_i8()?));
-			}
-		},
-		DataType::Int16 => {
-			for _ in 0..size {
-				data.push(NumVariant::from(reader.read_i16::<O>()?));
-			}
-		},
-		DataType::Int32 => {
-			for _ in 0..size {
-				data.push(NumVariant::from(reader.read_i32::<O>()?));
-			}
-		},
-		DataType::Int64 => {
-			for _ in 0..size {
-				data.push(NumVariant::from(reader.read_i64::<O>()?));
-			}
-		},
-		DataType::Float32 => {
-			for _ in 0..size {
-				data.push(NumVariant::from(reader.read_f32::<O>()?));
-			}
-		},
-		DataType::Float64 => {
-			for _ in 0..size {
-				data.push(NumVariant::from(reader.read_f64::<O>()?));
-			}
-		},
-		_ => unimplemented!()
+trait TableDataTrait {
+	fn size(&self) -> usize;
+	fn get(&self, i: usize) -> NumVariant;
+	fn set(&mut self, i: usize, data: NumVariant);
+	fn serialize(&self, endianness: Endianness) -> Result<Vec<u8>>;
+}
+
+struct TableData<T> {
+	data: Vec<T>,
+}
+
+trait TableType
+where Self: Sized {
+	fn deserialize<R: ReadBytesExt, O: ByteOrder>(data: &mut R) -> io::Result<Self>;
+	fn serialize<W: WriteBytesExt, O: ByteOrder>(&self, data: &mut W) -> io::Result<()>;
+}
+
+impl TableType for u8 {
+	fn deserialize<R: ReadBytesExt, O: ByteOrder>(data: &mut R) -> io::Result<Self> {
+		data.read_u8()
 	}
-	Ok(data)
+
+	fn serialize<W: WriteBytesExt, O: ByteOrder>(&self, data: &mut W) -> io::Result<()> {
+		data.write_u8(*self)
+	}
+}
+
+impl TableType for u16 {
+	fn deserialize<R: ReadBytesExt, O: ByteOrder>(data: &mut R) -> io::Result<Self> {
+		data.read_u16::<O>()
+	}
+
+	fn serialize<W: WriteBytesExt, O: ByteOrder>(&self, data: &mut W) -> io::Result<()> {
+		data.write_u16::<O>(*self)
+	}
+}
+
+impl TableType for u32 {
+	fn deserialize<R: ReadBytesExt, O: ByteOrder>(data: &mut R) -> io::Result<Self> {
+		data.read_u32::<O>()
+	}
+
+	fn serialize<W: WriteBytesExt, O: ByteOrder>(&self, data: &mut W) -> io::Result<()> {
+		data.write_u32::<O>(*self)
+	}
+}
+
+impl TableType for u64 {
+	fn deserialize<R: ReadBytesExt, O: ByteOrder>(data: &mut R) -> io::Result<Self> {
+		data.read_u64::<O>()
+	}
+
+	fn serialize<W: WriteBytesExt, O: ByteOrder>(&self, data: &mut W) -> io::Result<()> {
+		data.write_u64::<O>(*self)
+	}
+}
+
+impl TableType for i8 {
+	fn deserialize<R: ReadBytesExt, O: ByteOrder>(data: &mut R) -> io::Result<Self> {
+		data.read_i8()
+	}
+
+	fn serialize<W: WriteBytesExt, O: ByteOrder>(&self, data: &mut W) -> io::Result<()> {
+		data.write_i8(*self)
+	}
+}
+
+impl TableType for i16 {
+	fn deserialize<R: ReadBytesExt, O: ByteOrder>(data: &mut R) -> io::Result<Self> {
+		data.read_i16::<O>()
+	}
+
+	fn serialize<W: WriteBytesExt, O: ByteOrder>(&self, data: &mut W) -> io::Result<()> {
+		data.write_i16::<O>(*self)
+	}
+}
+
+impl TableType for i32 {
+	fn deserialize<R: ReadBytesExt, O: ByteOrder>(data: &mut R) -> io::Result<Self> {
+		data.read_i32::<O>()
+	}
+
+	fn serialize<W: WriteBytesExt, O: ByteOrder>(&self, data: &mut W) -> io::Result<()> {
+		data.write_i32::<O>(*self)
+	}
+}
+
+impl TableType for i64 {
+	fn deserialize<R: ReadBytesExt, O: ByteOrder>(data: &mut R) -> io::Result<Self> {
+		data.read_i64::<O>()
+	}
+
+	fn serialize<W: WriteBytesExt, O: ByteOrder>(&self, data: &mut W) -> io::Result<()> {
+		data.write_i64::<O>(*self)
+	}
+}
+
+impl TableType for f32 {
+	fn deserialize<R: ReadBytesExt, O: ByteOrder>(data: &mut R) -> io::Result<Self> {
+		data.read_f32::<O>()
+	}
+
+	fn serialize<W: WriteBytesExt, O: ByteOrder>(&self, data: &mut W) -> io::Result<()> {
+		data.write_f32::<O>(*self)
+	}
+}
+
+impl TableType for f64 {
+	fn deserialize<R: ReadBytesExt, O: ByteOrder>(data: &mut R) -> io::Result<Self> {
+		data.read_f64::<O>()
+	}
+
+	fn serialize<W: WriteBytesExt, O: ByteOrder>(&self, data: &mut W) -> io::Result<()> {
+		data.write_f64::<O>(*self)
+	}
+}
+
+
+impl<T> TableData<T> 
+where T: TableType {
+	/// Deserializes a table with the specified size in T units
+	fn deserialize<O: ByteOrder>(data: &[u8], size: usize) -> Result<TableData<T>> {
+		let mut reader = data;
+		let mut deserialized = Vec::new();
+		for _ in 0..size {
+			deserialized.push(T::deserialize::<_,O>(&mut reader)?);
+		}
+		Ok(TableData {
+			data: deserialized,
+		})
+	}
+
+	fn serialize_order<O: ByteOrder>(&self) -> Result<Vec<u8>> {
+		let mut serialized = Vec::new();
+		for data in self.data.iter() {
+			data.serialize::<_,O>(&mut serialized)?;
+		}
+		Ok(serialized)
+	}
+}
+
+impl<T> TableDataTrait for TableData<T> where
+T: convert::From<NumVariant> + marker::Copy + TableType, NumVariant: convert::From<T> {
+	fn size(&self) -> usize {
+		self.data.len()
+	}
+
+	fn get(&self, i: usize) -> NumVariant {
+		NumVariant::from(self.data[i])
+	}
+
+	fn set(&mut self, i: usize, data: NumVariant) {
+		self.data[i] = data.into();
+	}
+
+	fn serialize(&self, endianness: Endianness) -> Result<Vec<u8>> {
+		match endianness {
+			Endianness::Big => self.serialize_order::<BigEndian>(),
+			Endianness::Little => self.serialize_order::<LittleEndian>(),
+		}
+	}
+}
+
+fn deserialize_table<O: ByteOrder>(datatype: DataType, data: &[u8], size: usize) -> Result<Box<TableDataTrait>> {
+	match datatype {
+		DataType::Uint8 => Ok(Box::new(TableData::<u8>::deserialize::<O>(data, size)?)),
+		DataType::Uint16 => Ok(Box::new(TableData::<u16>::deserialize::<O>(data, size)?)),
+		DataType::Uint32 => Ok(Box::new(TableData::<u32>::deserialize::<O>(data, size)?)),
+		DataType::Uint64 => Ok(Box::new(TableData::<u64>::deserialize::<O>(data, size)?)),
+		DataType::Int8 => Ok(Box::new(TableData::<i8>::deserialize::<O>(data, size)?)),
+		DataType::Int16 => Ok(Box::new(TableData::<i16>::deserialize::<O>(data, size)?)),
+		DataType::Int32 => Ok(Box::new(TableData::<i32>::deserialize::<O>(data, size)?)),
+		DataType::Int64 => Ok(Box::new(TableData::<i64>::deserialize::<O>(data, size)?)),
+		DataType::Float32 => Ok(Box::new(TableData::<f32>::deserialize::<O>(data, size)?)),
+		DataType::Float64 => Ok(Box::new(TableData::<f64>::deserialize::<O>(data, size)?)),
+		_ => unimplemented!(),
+	}
 }
 
 pub struct Table {
 	pub data_type: DataType,
 	pub dirty: bool,
 	modified: BitVec,
-	data: Vec<NumVariant>,
+	data: Box<TableDataTrait>,
 	height: usize,
 
 	meta: TableMeta,
@@ -119,12 +242,16 @@ impl Table {
 		})
 	}
 
+	pub fn save_raw(&self, endianness: Endianness) -> Result<Vec<u8>> {
+		self.data.serialize(endianness)
+	}
+
 	pub fn height(&self) -> usize {
 		self.height
 	}
 
 	pub fn width(&self) -> usize {
-		self.data.len() / self.height
+		self.data.size() / self.height
 	}
 
 	/// Returns true if the data at (`x`, `y`) has been modified
@@ -152,17 +279,17 @@ impl Table {
 
 	/// Returns true if this table has one entry
 	pub fn is_single(&self) -> bool {
-		self.data.len() == 1
+		self.data.size() == 1
 	}
 
 	pub fn set(&mut self, x: usize, y: usize, data: NumVariant) {
 		// TODO: Convert data to the correct type
-		self.data[y * self.height + x] = data;
+		self.data.set(y * self.height + x, data);
 	}
 
 	/// Expects the data to be in range. If not, it will panic.
 	pub fn get(&self, x: usize, y: usize) -> NumVariant {
-		self.data[y * self.height + x]
+		self.data.get(y * self.height + x)
 	}
 }
 
