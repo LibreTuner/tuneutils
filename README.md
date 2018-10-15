@@ -16,14 +16,9 @@ This library is the base of LibreTuner.
 * J2534 (Windows only)
 
 ### Supported vehicles
-#### Firmware downloading
-* Mazdaspeed6 / Mazda 6 MPS / Mazdaspeed Atenza
-
-#### Firmware flashing
-* Mazdaspeed6 / Mazda 6 MPS / Mazdaspeed Atenza
-
-#### Firmware tuning
-* Mazdaspeed6 / Mazda 6 MPS / Mazdaspeed Atenza
+| Vehicle     										 | Downloading | Flashing | Tuning |
+| ----------- 							  			 | ----------- | -------- | ------ |
+| Mazdaspeed6 / Mazda 6 MPS / Mazdaspeed Atenza      | Yes         | Yes      | No     |
 
 
 ## Contributing
