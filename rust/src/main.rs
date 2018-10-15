@@ -1,4 +1,5 @@
 extern crate tuneutils;
+extern crate rustyline;
 
 use tuneutils::protocols::can;
 use tuneutils::protocols::isotp;
@@ -14,7 +15,23 @@ use isotp::IsotpInterface;
 #[cfg(feature = "socketcan")]
 use can::SocketCan;
 
+fn main() {
+    println!("LibreTuner  Copyright (C) 2018  The LibreTuner Team
+This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
+This is free software, and you are welcome to redistribute it
+under certain conditions; type `show c' for details.");
 
+    let mut rl = rustyline::Editor::<()>::new();
+    loop {
+        let readline = rl.readline(">> ");
+        match readline {
+            Ok(line) => println!("Line: {:?}", line),
+            Err(_) => println!("No input"),
+        }
+    }
+}
+
+/*
 #[cfg(feature = "j2534")]
 extern crate j2534;
 #[cfg(feature = "j2534")]
@@ -48,4 +65,4 @@ fn main() {
     let data = downloader.download().unwrap();
 
     println!("Got data: {:?}", data.data);*/
-}
+}*/
