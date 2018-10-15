@@ -203,6 +203,12 @@ impl Main {
 	pub fn find(&self, id: &str) -> Option<&Rc<Model>> {
 		self.models.iter().find(|&model| model.id == id)
 	}
+
+	/// Searches for a table definition
+	pub fn find_table(&self, id: usize) -> Option<&Table> {
+		// This could be better implemented with a hash table
+		self.tables.iter().find(|ref x| x.id == id)
+	}
 }
 
 pub type Result<T> = result::Result<T, Error>;

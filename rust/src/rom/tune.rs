@@ -211,6 +211,12 @@ fn deserialize_table<O: ByteOrder>(datatype: DataType, data: &[u8], size: usize)
 	}
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct SerializedTable {
+	id: usize,
+	data: Vec<u8>,
+}
+
 pub struct Table {
 	pub data_type: DataType,
 	pub dirty: bool,
@@ -259,6 +265,11 @@ impl Table {
 		self.modified[(y * self.height + x) as u64]
 	}
 
+	/// Returns true if the table has been modified from the original ROM
+	pub fn dirty(&self) -> bool {
+		self.dirty
+	}
+
 	pub fn name(&self) -> &str {
 		&self.meta.name
 	}
@@ -294,7 +305,7 @@ impl Table {
 }
 
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct TuneMeta {
 	name: String,
 	id: String,
@@ -307,21 +318,51 @@ pub struct TuneMeta {
 pub struct Tune {
 	pub rom: Rc<Rom>,
 	pub tables: HashMap<usize, Table>,
+	pub meta: TuneMeta,
 }
 
 impl Tune {
+	/// Loads a tune from file
 	pub fn load(meta: &TuneMeta, roms: &RomManager) -> Result<Tune> {
 		// Search for the ROM
 		let rom_meta = roms.search(&meta.rom_id).ok_or(Error::InvalidRomId)?;
 		let rom = roms.load_rom(rom_meta)?;
 
 		let mut tables = HashMap::new();
-		// TODO: Load tables from file
+		// Load tables from file
+		let contents = fs::read_to_string(&meta.data_path)?;
+		let table_array: Vec<SerializedTable> = serde_yaml::from_str(&contents)?;
+		for table in table_array {
+			// Locate table definition
+			if let Some(table_def) = rom_meta.main.find_table(table.id) {
+				tables.insert(table.id, Table::load_raw(table_def, &table.data, rom_meta.main.endianness)?);
+			} else {
+				return Err(Error::InvalidTableId);
+			}
+		}
 
 		Ok(Tune {
 			rom: rom.clone(),
 			tables,
+			meta: meta.clone(),
 		})
+	}
+
+	/// Saves the tune to file. The filepath is Tune::meta::data_path
+	pub fn save(&self) -> Result<()> {
+		let mut tables = Vec::new();
+		for table in self.tables.iter() {
+			if table.1.dirty() {
+				// We only save modified tables
+				tables.push(SerializedTable {
+					id: *table.0,
+					data: table.1.save_raw(self.rom.meta.main.endianness)?,
+				});
+			}
+		}
+		// Write to file
+		fs::write(&self.meta.data_path, serde_yaml::to_string(&tables).unwrap())?;
+		Ok(())
 	}
 
 	/// Gets a table. Returns Error::NotLoaded even if the id is invalid
@@ -348,7 +389,7 @@ impl Tune {
 
 	/// Gets or loads a table.
 	pub fn get_or_load_table(&mut self, id: usize) -> Result<&Table> {
-		// This is an ugly pattern but we can't fix this without NLL
+		// This is an ugly pattern that can't be fixed without NLL
 		if self.tables.contains_key(&id) {
 			return self.tables.get(&id).ok_or(Error::InvalidTableId); // This should never error
 		}
@@ -356,32 +397,63 @@ impl Tune {
 	}
 }
 
+#[derive(Debug)]
 pub struct TuneManager {
 	tunes: Vec<TuneMeta>,
+	base: PathBuf,
 }
 
 impl TuneManager {
-	pub fn load(&mut self, base: &Path) -> Result<()> {
-		for entry in fs::read_dir(base)? {
-			let entry = entry?;
-
-			if !entry.file_type()?.is_file() {
-				continue;
-			}
-
-			let path = entry.path();
-			if let Some(ext) = path.extension() {
-				if ext != "yaml" { continue; }
-			} else {
-				continue;
-			}
-
-			let contents = fs::read_to_string(path)?;
-			let mut meta: TuneMeta = serde_yaml::from_str(&contents)?;
-			meta.data_path = base.join(&meta.id);
-			self.tunes.push(meta);
+	pub fn load(base: PathBuf) -> Result<TuneManager> {
+		let path = base.join("tunes.yaml");
+		if !path.is_file() {
+			return Ok(TuneManager {
+				tunes: Vec::new(),
+				base,
+			});
 		}
 
+		// Load metadata
+		Ok(TuneManager {
+			tunes: serde_yaml::from_str(&fs::read_to_string(&path)?)?,
+			base,
+		})
+	}
+
+	pub fn save(&self) -> Result<()> {
+		fs::write(&self.base.join("tunes.yaml"), serde_yaml::to_string(&self.tunes).unwrap())?;
 		Ok(())
+	}
+
+	/// Adds a new tune to the database. Note: this WILL NOT save, you must call `save()`
+	/// The data_path may not be preserved; it will be loaded as "$TUNE_PATH/id"
+	fn add(&mut self, tune: &Tune) {
+		self.tunes.push(tune.meta.clone());
+	}
+
+	fn add_meta(&mut self, name: String, id: String, rom_id: String) {
+		self.tunes.push(TuneMeta {
+			name,
+			id,
+			rom_id,
+			data_path: PathBuf::default(),
+		})
+	}
+
+	/// Creates a new tune from a ROM and adds it to the database.
+	/// Note: this WILL NOT save, you must call `save()`
+	pub fn new(&mut self, name: String, id: String, rom: &Rc<Rom>) -> Tune {
+		let tune = Tune {
+			rom: rom.clone(),
+			tables: HashMap::new(),
+			meta: TuneMeta {
+				data_path: self.base.join(&id),
+				name,
+				id,
+				rom_id: rom.meta.id.clone(),
+			}
+		};
+		self.add(&tune);
+		tune
 	}
 }
