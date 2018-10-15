@@ -22,4 +22,4 @@ This library is the base of LibreTuner.
 
 
 ## Contributing
-TuneUtils is licensed under LGPL and we welcome anyone to fork and submit a pull request with changes. If you would like to join the team, you can find us in the LibreTuner [Discord](https://discord.gg/QQvX2rB)
+TuneUtils is licensed under GPL and we welcome anyone to fork and submit a pull request with changes. If you would like to join the team, you can find us in the LibreTuner [Discord](https://discord.gg/QQvX2rB)
