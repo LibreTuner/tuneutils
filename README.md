@@ -18,7 +18,7 @@ This library is the base of LibreTuner.
 ### Supported vehicles
 | Vehicle     										 | Downloading | Flashing | Tuning |
 | ----------- 							  			 | ----------- | -------- | ------ |
-| Mazdaspeed6 / Mazda 6 MPS / Mazdaspeed Atenza      | Yes         | Yes      | No     |
+| Mazdaspeed6 / Mazda 6 MPS / Mazdaspeed Atenza      | Yes         | Yes      | Yes    |
 
 
 ## Contributing
