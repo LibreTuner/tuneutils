@@ -1,6 +1,8 @@
 TuneUtils
 =========
-A lightweight library with vehicle tuning utilities. 
+A lightweight library with vehicle tuning utilities. This includes utilities for communicating with OBD-II services, firmware downloading/flashing, and table modifications.
+
+This library is the base of LibreTuner.
 
 
 ## Features
@@ -12,3 +14,17 @@ A lightweight library with vehicle tuning utilities.
 ### Communication devices
 * SocketCAN (Linux only)
 * J2534 (Windows only)
+
+### Supported vehicles
+#### Firmware downloading
+* Mazdaspeed6 / Mazda 6 MPS / Mazdaspeed Atenza
+
+#### Firmware flashing
+* Mazdaspeed6 / Mazda 6 MPS / Mazdaspeed Atenza
+
+#### Firmware tuning
+* Mazdaspeed6 / Mazda 6 MPS / Mazdaspeed Atenza
+
+
+## Contributing
+TuneUtils is licensed under LGPL and anyone is welcomed to fork and submit a pull request with changes. If you would like to join the team, you can find us in the LibreTuner [Discord](https://discord.gg/QQvX2rB)
