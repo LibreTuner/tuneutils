@@ -1,4 +1,4 @@
-use super::{Downloader, DownloadResponse, Result, Error};
+use super::{Downloader, DownloadResponse, DownloadCallback, Result, Error};
 
 use protocols::uds::UdsInterface;
 use authenticator::MazdaAuthenticator;
@@ -23,7 +23,7 @@ impl<'a> Mazda1Downloader<'a> {
 }
 
 impl<'a> Downloader for Mazda1Downloader<'a> {
-	fn download(&self) -> Result<DownloadResponse> {
+	fn download(&self, callback: &DownloadCallback) -> Result<DownloadResponse> {
 		let auth = MazdaAuthenticator{};
 		auth.authenticate(&self.key, self.interface, 0x87)?;
 
@@ -42,6 +42,12 @@ impl<'a> Downloader for Mazda1Downloader<'a> {
 			data.extend_from_slice(&section);
 			offset += section.len() as u32;
 			remaining -= section.len() as u32;
+
+			// Call the update callback
+			if let Some(ref cb) = callback.callback {
+				let mut closure = cb.borrow_mut();
+				(&mut *closure)((self.download_size as u32 - remaining) as f32 / self.download_size as f32);
+			}
 		}
 
 		Ok(DownloadResponse {data})

@@ -178,7 +178,7 @@ pub struct Main {
 	pub name: String,
 	pub id: String,
 
-	transfer: Transfer,
+	pub transfer: Transfer,
 	pub baudrate: u32,
 	#[serde(default)]
 	pub log_mode: LogMode,

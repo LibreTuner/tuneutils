@@ -13,12 +13,12 @@ use self::itertools::Itertools;
 #[cfg(feature = "j2534")]
 pub mod j2534can;
 #[cfg(feature = "j2534")]
-pub type J2534Can<'a> = j2534can::J2534Can<'a>;
+pub use j2534can::J2534Can;
 
 #[cfg(feature = "socketcan")]
 pub mod socketcan;
 #[cfg(feature = "socketcan")]
-pub type SocketCan = socketcan::SocketCan;
+pub use self::socketcan::SocketCan;
 
 
 pub type Result<T> = std::result::Result<T, Error>;

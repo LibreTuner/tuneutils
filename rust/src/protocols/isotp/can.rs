@@ -4,9 +4,10 @@ use super::{IsotpInterface, Result, Error, Frame, Options, FCFlag, FlowControlFr
 use std::cmp;
 use std::time;
 use std::thread;
+use std::rc::Rc;
 
-pub struct IsotpCan<'a> {
-    can: &'a CanInterface,
+pub struct IsotpCan {
+    can: Rc<CanInterface>,
     options: Options,
 }
 
@@ -17,8 +18,8 @@ fn st_to_duration(st: u8) -> time::Duration {
     time::Duration::from_micros(st as u64)
 }
 
-impl<'a> IsotpCan<'a> {
-    pub fn new(can: &CanInterface, options: Options) -> IsotpCan {
+impl IsotpCan {
+    pub fn new(can: Rc<CanInterface>, options: Options) -> IsotpCan {
         IsotpCan {can, options}
     }
 
@@ -109,7 +110,7 @@ impl<'a> SendPacket<'a> {
     }
 }
 
-impl<'a> IsotpInterface for IsotpCan<'a> {
+impl IsotpInterface for IsotpCan {
     fn recv(&self) -> Result<Vec<u8>> {
         // Receive first or single frame
         let frame = self.recv_frame()?;

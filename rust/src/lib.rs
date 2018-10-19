@@ -8,6 +8,8 @@ extern crate j2534;
 pub mod numvariant;
 pub mod protocols;
 pub mod download;
+pub mod flash;
+pub mod link;
 pub mod authenticator;
 pub mod definition;
 pub mod rom;

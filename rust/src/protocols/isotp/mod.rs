@@ -4,7 +4,7 @@ use std::default::Default;
 pub mod error;
 pub mod can;
 
-pub type IsotpCan<'a> = can::IsotpCan<'a>;
+pub use self::can::IsotpCan;
 
 use self::error::{Error, Result};
 use std::cmp;

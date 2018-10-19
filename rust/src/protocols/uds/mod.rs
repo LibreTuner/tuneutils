@@ -5,7 +5,7 @@ use std::convert;
 
 pub mod isotp;
 
-pub type UdsIsotp<'a> = isotp::UdsIsotp<'a>;
+pub use self::isotp::UdsIsotp;
 
 use protocols::isotp::error::Error as IsotpError;
 
@@ -31,12 +31,16 @@ pub struct Response {
 }
 
 // Request SIDs
-const UDS_REQ_SESSION: u8 = 0x10;
-const UDS_REQ_SECURITY: u8 = 0x27;
-const UDS_REQ_READMEM: u8 = 0x23;
-const UDS_REQ_REQUESTDOWNLOAD: u8 = 0x34;
-const UDS_REQ_REQUESTUPLOAD: u8 = 0x35;
-const UDS_REQ_TRANSFERDATA: u8 = 0x36;
+pub const UDS_REQ_SESSION: u8 = 0x10;
+pub const UDS_REQ_SECURITY: u8 = 0x27;
+pub const UDS_REQ_READMEM: u8 = 0x23;
+pub const UDS_REQ_REQUESTDOWNLOAD: u8 = 0x34;
+pub const UDS_REQ_REQUESTUPLOAD: u8 = 0x35;
+pub const UDS_REQ_TRANSFERDATA: u8 = 0x36;
+
+// Negative response codes
+// requestCorrectlyReceivedResponsePending
+pub const UDS_NRES_RCRRP: u8 = 0x78;
 
 pub trait UdsInterface {
     fn request(&self, request_sid: u8, data: &[u8]) -> Result<Vec<u8>>;
