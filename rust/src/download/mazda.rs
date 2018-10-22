@@ -4,16 +4,17 @@ use protocols::uds::UdsInterface;
 use authenticator::MazdaAuthenticator;
 
 use std::cmp;
+use std::rc::Rc;
 
 
-pub struct Mazda1Downloader<'a> {
-	interface: &'a UdsInterface,
+pub struct Mazda1Downloader {
+	interface: Rc<UdsInterface>,
 	key: String,
 	download_size: usize,
 }
 
-impl<'a> Mazda1Downloader<'a> {
-	pub fn new<'b>(interface: &'b UdsInterface, key: &str, download_size: usize) -> Mazda1Downloader<'b> {
+impl Mazda1Downloader {
+	pub fn new(interface: Rc<UdsInterface>, key: &str, download_size: usize) -> Mazda1Downloader {
 		Mazda1Downloader {
 			interface,
 			key: key.to_string(),
@@ -22,10 +23,10 @@ impl<'a> Mazda1Downloader<'a> {
 	}
 }
 
-impl<'a> Downloader for Mazda1Downloader<'a> {
+impl Downloader for Mazda1Downloader {
 	fn download(&self, callback: &DownloadCallback) -> Result<DownloadResponse> {
 		let auth = MazdaAuthenticator{};
-		auth.authenticate(&self.key, self.interface, 0x87)?;
+		auth.authenticate(&self.key, &*self.interface, 0x87)?;
 
 		// Start downloading through ReadMemoryByAddress
 		let mut data = Vec::with_capacity(self.download_size);
@@ -39,6 +40,7 @@ impl<'a> Downloader for Mazda1Downloader<'a> {
 				return Err(Error::EmptyPacket);
 			}
 
+			// Add response to buffer
 			data.extend_from_slice(&section);
 			offset += section.len() as u32;
 			remaining -= section.len() as u32;

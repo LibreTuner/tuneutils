@@ -1,6 +1,6 @@
 extern crate byteorder;
 
-use super::{Flasher, FlashData, Result, Error};
+use super::{Flasher, FlashData, Result};
 
 use protocols::uds::{self, UdsInterface};
 use authenticator::MazdaAuthenticator;
@@ -8,15 +8,16 @@ use authenticator::MazdaAuthenticator;
 use self::byteorder::{BigEndian, WriteBytesExt};
 
 use std::cmp;
+use std::rc::Rc;
 
 
-pub struct Mazda1Flasher<'a> {
-	interface: &'a UdsInterface,
+pub struct Mazda1Flasher {
+	interface: Rc<UdsInterface>,
 	key: String,
 }
 
-impl<'a> Mazda1Flasher<'a> {
-	pub fn new<'b>(interface: &'b UdsInterface, key: &str) -> Mazda1Flasher<'b> {
+impl Mazda1Flasher {
+	pub fn new(interface: Rc<UdsInterface>, key: &str) -> Mazda1Flasher {
 		Mazda1Flasher {
 			interface,
 			key: key.to_string(),
@@ -24,7 +25,7 @@ impl<'a> Mazda1Flasher<'a> {
 	}
 }
 
-impl<'a> Mazda1Flasher<'a> {
+impl Mazda1Flasher {
 	/// Erases the ECU for writing. It MUST be erased before writing
 	/// or the microcontroller controller could be damaged.
 	fn erase(&self) -> Result<()> {
@@ -33,11 +34,11 @@ impl<'a> Mazda1Flasher<'a> {
 	}
 }
 
-impl<'a> Flasher for Mazda1Flasher<'a> {
+impl Flasher for Mazda1Flasher {
 	fn flash(&self, data: &FlashData) -> Result<()> {
 		// Authenticate
 		let auth = MazdaAuthenticator{};
-		auth.authenticate(&self.key, self.interface, 0x85)?;
+		auth.authenticate(&self.key, &*self.interface, 0x85)?;
 
 		// Erase
 		self.erase()?;
@@ -49,6 +50,7 @@ impl<'a> Flasher for Mazda1Flasher<'a> {
 			writer.write_u32::<BigEndian>(data.offset as u32)?;
 			writer.write_u32::<BigEndian>(data.data.len() as u32)?;
 		}
+		// Mazda does not use the standard download request, so we make a packet from scratch
 		self.interface.request(uds::UDS_REQ_REQUESTDOWNLOAD, &msg)?;
 
 		// Upload

@@ -1,20 +1,16 @@
-#![feature(nll)]
-
 extern crate serde_yaml;
-extern crate num_traits;
 extern crate byteorder;
 extern crate bv;
 use self::bv::BitVec;
 
 use std::fs;
 use std::io;
-use std::path::{PathBuf, Path};
+use std::path::{PathBuf};
 use std::rc::Rc;
 use std::collections::HashMap;
 use std::convert;
 use std::marker;
 
-use self::num_traits::{Num, PrimInt, AsPrimitive};
 use self::byteorder::{ByteOrder, BigEndian, LittleEndian, ReadBytesExt, WriteBytesExt};
 
 use super::{Error, Result, Rom, RomManager};
@@ -207,7 +203,6 @@ fn deserialize_table<O: ByteOrder>(datatype: DataType, data: &[u8], size: usize)
 		DataType::Int64 => Ok(Box::new(TableData::<i64>::deserialize::<O>(data, size)?)),
 		DataType::Float32 => Ok(Box::new(TableData::<f32>::deserialize::<O>(data, size)?)),
 		DataType::Float64 => Ok(Box::new(TableData::<f64>::deserialize::<O>(data, size)?)),
-		_ => unimplemented!(),
 	}
 }
 

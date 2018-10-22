@@ -132,7 +132,7 @@ impl<S: Sized + CanInterface> CanInterfaceIterator for S {
 }
 
 pub struct RecvIterator<'a> {
-    interface: &'a (CanInterface + 'a),
+    interface: &'a CanInterface,
     timeout: time::Duration,
 }
 

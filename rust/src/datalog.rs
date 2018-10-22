@@ -7,7 +7,6 @@ use std::result;
 use std::convert::From;
 use std::time;
 use std::cell::RefCell;
-use std::rc::Rc;
 
 extern crate eval;
 

@@ -6,7 +6,6 @@ use std::cell::RefCell;
 use protocols::uds;
 use std::convert;
 use std::result;
-use definition::{Main, DownloadMode};
 
 pub type Result<T> = result::Result<T, Error>;
 

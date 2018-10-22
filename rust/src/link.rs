@@ -1,10 +1,15 @@
 use protocols::can::socketcan::SocketCan;
 use protocols::can::CanInterface;
 use protocols::isotp::{self, IsotpInterface, IsotpCan};
-use protocols::uds::UdsInterface;
-use definition;
+use protocols::uds::{UdsIsotp, UdsInterface};
+
+use download::{self, Downloader};
+use flash::{self, Flasher};
+
+use definition::{self, DownloadMode, FlashMode};
 
 use std::rc::Rc;
+use std::time;
 
 pub trait DataLink {
 	/// Returns a CAN interface if supported
@@ -54,14 +59,51 @@ pub struct PlatformLink {
 impl PlatformLink {
 	/// Returns the ISO-TP options for the platform
 	pub fn isotp_options(&self) -> isotp::Options {
-		let source_id = self.platform.transfer.
+		let server_id = self.platform.transfer.server_id as u32;
 		isotp::Options {
-			source_id: 
+			source_id: server_id,
+			dest_id: server_id + 0x08,
+			// TODO: Pull this from a config
+			timeout: time::Duration::from_secs(1),
 		}
 	}
 
-	/// Returns the UDS interface for the platform and datalink, if supported
-	pub fn uds(&self) -> Some<Rc<UdsInterface>> {
-		if let Some(isotp_interface) = self.link.isotp()
+	/// Returns the ISO-TP interface for the platform, if supported
+	pub fn isotp(&self) -> Option<Rc<IsotpInterface>> {
+		self.link.isotp(self.isotp_options())
+	}
+
+	/// Returns the UDS interface for the platform, if supported
+	pub fn uds(&self) -> Option<Rc<UdsInterface>> {
+		if let Some(isotp_interface) = self.isotp() {
+			return Some(Rc::new(UdsIsotp::new(isotp_interface)));
+		}
+		None
+	}
+
+	/// Returns the downloader for the platform, if supported by the platform AND datalink
+	pub fn downloader(&self) -> Option<Box<Downloader>> {
+		match self.platform.transfer.download_mode {
+			DownloadMode::Mazda1 => {
+				if let Some(uds_interface) = self.uds() {
+					return Some(Box::new(download::mazda::Mazda1Downloader::new(uds_interface, &self.platform.transfer.key, self.platform.rom_size)));
+				}
+				None
+			},
+			_ => None,
+		}
+	}
+
+	/// Returns the flash interface for the platform, if supported by the platform AND datalink
+	pub fn flasher(&self) -> Option<Box<Flasher>> {
+		match self.platform.transfer.flash_mode {
+			FlashMode::Mazda1 => {
+				if let Some(uds_interface) = self.uds() {
+					return Some(Box::new(flash::mazda::Mazda1Flasher::new(uds_interface, &self.platform.transfer.key)));
+				}
+				None
+			},
+			_ => None,
+		}
 	}
 }

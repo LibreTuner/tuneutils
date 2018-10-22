@@ -10,9 +10,9 @@ use self::error::{Error, Result};
 use std::cmp;
 
 pub struct Options {
-    source_id: u32,
-    dest_id: u32,
-    timeout: time::Duration,
+    pub source_id: u32,
+    pub dest_id: u32,
+    pub timeout: time::Duration,
 }
 
 impl Default for Options {
