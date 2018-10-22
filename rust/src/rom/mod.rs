@@ -3,43 +3,15 @@ extern crate serde_yaml;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 use std::collections::HashMap;
-use std::result;
-use std::io;
 use std::fs;
-use std::convert;
 use std::path::{Path, PathBuf};
+
+use error::{Error, Result};
 
 pub mod tune;
 
 use definition;
 
-
-
-pub type Result<T> = result::Result<T, Error>;
-
-#[derive(Debug)]
-pub enum Error {
-	Yaml(serde_yaml::Error),
-	Io(io::Error),
-	InvalidMainId,
-	InvalidModelId,
-	InvalidRomId,
-	NotLoaded,
-	InvalidTableId,
-	NoTableOffset,
-}
-
-impl convert::From<serde_yaml::Error> for Error {
-	fn from(err: serde_yaml::Error) -> Error {
-		Error::Yaml(err)
-	}
-}
-
-impl convert::From<io::Error> for Error {
-	fn from(err: io::Error) -> Error {
-		Error::Io(err)
-	}
-}
 
 #[derive(Debug)]
 pub struct Rom {

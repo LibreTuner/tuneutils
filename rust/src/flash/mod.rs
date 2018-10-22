@@ -2,31 +2,9 @@
 
 pub mod mazda;
 
-use protocols::uds;
-use std::convert;
-use std::result;
-use std::io;
 use std::cell::RefCell;
 
-pub type Result<T> = result::Result<T, Error>;
-
-#[derive(Debug)]
-pub enum Error {
-    Uds(uds::Error),
-    Io(io::Error),
-}
-
-impl convert::From<uds::Error> for Error {
-    fn from(error: uds::Error) -> Error {
-        Error::Uds(error)
-    }
-}
-
-impl convert::From<io::Error> for Error {
-	fn from(error: io::Error) -> Error {
-		Error::Io(error)
-	}
-}
+use error::Result;
 
 pub struct FlashData<'a> {
 	pub offset: usize,

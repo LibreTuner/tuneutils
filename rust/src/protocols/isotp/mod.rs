@@ -1,12 +1,11 @@
 use std::time;
 use std::default::Default;
 
-pub mod error;
 pub mod can;
 
 pub use self::can::IsotpCan;
+use error::{Error, Result};
 
-use self::error::{Error, Result};
 use std::cmp;
 
 pub struct Options {

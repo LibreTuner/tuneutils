@@ -2,74 +2,22 @@
 extern crate j2534;
 extern crate itertools;
 
-use std::io;
-use std;
 use std::time;
 use std::fmt;
 use std::iter;
+use error::Result;
 use self::itertools::Itertools;
 
 
 #[cfg(feature = "j2534")]
 pub mod j2534can;
 #[cfg(feature = "j2534")]
-pub use j2534can::J2534Can;
+pub use self::j2534can::J2534Can;
 
 #[cfg(feature = "socketcan")]
 pub mod socketcan;
 #[cfg(feature = "socketcan")]
 pub use self::socketcan::SocketCan;
-
-
-pub type Result<T> = std::result::Result<T, Error>;
-
-#[derive(Debug)]
-pub enum Error {
-    Io(io::Error),
-    InvalidConnection,
-    InvalidResponse,
-    Timeout,
-    TooMuchData,
-    IncompleteWrite,
-    ReadError,
-    
-    #[cfg(feature = "j2534")]
-    J2534(j2534::Error),
-}
-
-impl Error {
-    fn as_str(&self) -> &str {
-        match *self {
-            Error::Io(ref _io) => "io error",
-            Error::InvalidConnection => "invalid connection",
-            Error::InvalidResponse => "invalid response",
-            Error::Timeout => "timed out",
-            Error::TooMuchData => "too much data",
-            Error::IncompleteWrite => "only part of the data could be written",
-            Error::ReadError => "failed to read",
-            #[cfg(feature = "j2534")]
-            Error::J2534(ref _err) => "J2534 error",
-        }
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(error: io::Error) -> Self {
-        Error::Io(error)
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_str())
-    }
-}
-
-impl std::error::Error for Error {
-    fn description(&self) -> &str {
-        self.as_str()
-    }
-}
 
 #[derive(Debug)]
 pub struct Message {

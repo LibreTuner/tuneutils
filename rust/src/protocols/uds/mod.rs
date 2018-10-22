@@ -1,30 +1,12 @@
 extern crate byteorder;
 
-use std::result;
-use std::convert;
-
 pub mod isotp;
 
 pub use self::isotp::UdsIsotp;
 
-use protocols::isotp::error::Error as IsotpError;
+use error::{Error, Result};
 
 use self::byteorder::{BigEndian, WriteBytesExt};
-
-#[derive(Debug)]
-pub enum Error {
-    NegativeResponse(u8),
-    Isotp(IsotpError),
-    InvalidPacket,
-}
-
-impl convert::From<IsotpError> for Error {
-    fn from(error: IsotpError) -> Error {
-        Error::Isotp(error)
-    }
-}
-
-pub type Result<T> = result::Result<T, Error>;
 
 pub struct Response {
     pub data: Vec<u8>,

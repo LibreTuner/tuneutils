@@ -1,5 +1,6 @@
 use protocols::uds;
 use self::uds::UdsInterface;
+use error::Result;
 
 pub struct MazdaAuthenticator {
 
@@ -7,7 +8,7 @@ pub struct MazdaAuthenticator {
 
 impl MazdaAuthenticator {
 	/// Authenticate using Mazda's protocol. `session_type` should usually be 0x87
-	pub fn authenticate(&self, key: &str, interface: &UdsInterface, session_type: u8) -> uds::Result<()> {
+	pub fn authenticate(&self, key: &str, interface: &UdsInterface, session_type: u8) -> Result<()> {
 		// Request the session
 		interface.request_session(session_type)?;
 		// Request seed

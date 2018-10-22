@@ -13,7 +13,9 @@ use std::marker;
 
 use self::byteorder::{ByteOrder, BigEndian, LittleEndian, ReadBytesExt, WriteBytesExt};
 
-use super::{Error, Result, Rom, RomManager};
+use super::{Rom, RomManager};
+
+use error::{Error, Result};
 
 use definition::{DataType, Endianness};
 use definition::Table as TableDefinition;

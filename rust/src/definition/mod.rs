@@ -1,14 +1,14 @@
 extern crate serde_yaml;
 
 use std::rc::Rc;
-use std::result;
 use std::default;
 use std::collections::HashMap;
 
 use std::path::Path;
 use std::fs;
-use std::convert;
-use std::io::{self, Read};
+use std::io::Read;
+
+use error::Result;
 
 #[serde(rename_all = "lowercase")]
 #[derive(Debug, Serialize, Deserialize)]
@@ -208,26 +208,6 @@ impl Main {
 	pub fn find_table(&self, id: usize) -> Option<&Table> {
 		// This could be better implemented with a hash table
 		self.tables.iter().find(|ref x| x.id == id)
-	}
-}
-
-pub type Result<T> = result::Result<T, Error>;
-
-#[derive(Debug)]
-pub enum Error {
-	Yaml(serde_yaml::Error),
-	Io(io::Error),
-}
-
-impl convert::From<serde_yaml::Error> for Error {
-	fn from(err: serde_yaml::Error) -> Error {
-		Error::Yaml(err)
-	}
-}
-
-impl convert::From<io::Error> for Error {
-	fn from(err: io::Error) -> Error {
-		Error::Io(err)
 	}
 }
 

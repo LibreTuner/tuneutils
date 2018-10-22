@@ -2,11 +2,13 @@ extern crate libc;
 extern crate j2534;
 extern crate byteorder;
 
+use std::rc::Rc;
 use std::time;
 use self::byteorder::{WriteBytesExt, ReadBytesExt, BigEndian};
 use std::io::{Write, Read};
+use error::{Error, Result};
 
-use protocols::can::{CanInterface, Result, Error, Message};
+use protocols::can::{CanInterface, Message};
 
 
 impl From<j2534::Error> for Error {
@@ -16,19 +18,19 @@ impl From<j2534::Error> for Error {
 }
 
 
-pub struct J2534Can<'a> {
-    channel: j2534::Channel<'a>,
+pub struct J2534Can {
+    channel: j2534::Channel,
 }
 
-impl<'a> J2534Can<'a> {
+impl J2534Can {
     /// Creates a new device from a J2534 channel. The channel must be a CAN channel.
     pub fn new(channel: j2534::Channel) -> Result<J2534Can> {
         Ok(J2534Can { channel })
     }
 
     /// Creates a CAN channel from a device with the specified baudrate
-    pub fn connect<'b>(device: &'b j2534::Device, baudrate: u32) -> Result<J2534Can<'b>> {
-        J2534Can::new(device.connect(j2534::Protocol::CAN, j2534::ConnectFlags::CAN_ID_BOTH, baudrate)?)
+    pub fn connect(device: Rc<j2534::Device>, baudrate: u32) -> Result<J2534Can> {
+        J2534Can::new(j2534::Channel::connect(device, j2534::Protocol::CAN, j2534::ConnectFlags::CAN_ID_BOTH, baudrate)?)
     }
 
     /// Applies a filter that wil allow all messages through
@@ -46,7 +48,7 @@ impl<'a> J2534Can<'a> {
     }
 }
 
-impl<'a> CanInterface for J2534Can<'a> {
+impl CanInterface for J2534Can {
     /// Sends a CAN message through the PassThru channel.
     /// 
     /// # Arguments

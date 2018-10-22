@@ -2,7 +2,8 @@ use protocols::isotp::IsotpInterface;
 
 use std::rc::Rc;
 
-use super::{UdsInterface, Result, Error, UDS_NRES_RCRRP};
+use super::{UdsInterface, UDS_NRES_RCRRP};
+use error::{Error, Result};
 
 pub struct UdsIsotp {
     interface: Rc<IsotpInterface>,

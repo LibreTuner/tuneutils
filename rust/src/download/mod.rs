@@ -3,18 +3,7 @@
 pub mod mazda;
 
 use std::cell::RefCell;
-use protocols::uds;
-use std::convert;
-use std::result;
-
-pub type Result<T> = result::Result<T, Error>;
-
-#[derive(Debug)]
-pub enum Error {
-    Uds(uds::Error),
-    /// Received an empty packet
-    EmptyPacket,
-}
+use error::Result;
 
 pub struct DownloadCallback {
 	pub callback: Option<Box<RefCell<FnMut(f32)>>>,
@@ -32,12 +21,6 @@ impl DownloadCallback {
 			callback: Some(Box::new(RefCell::new(cb))),
 		}
 	}
-}
-
-impl convert::From<uds::Error> for Error {
-    fn from(error: uds::Error) -> Error {
-        Error::Uds(error)
-    }
 }
 
 pub struct DownloadResponse {

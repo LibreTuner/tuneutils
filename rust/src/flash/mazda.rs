@@ -1,6 +1,8 @@
 extern crate byteorder;
 
-use super::{Flasher, FlashData, Result};
+use super::{Flasher, FlashData};
+
+use error::Result;
 
 use protocols::uds::{self, UdsInterface};
 use authenticator::MazdaAuthenticator;

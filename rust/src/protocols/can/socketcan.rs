@@ -5,7 +5,8 @@ use std::mem;
 use std::time;
 use std::ffi;
 
-use super::{CanInterface, Result, Error, Message};
+use super::{CanInterface, Message};
+use error::{Error, Result};
 
 
 const AF_CAN: libc::c_int = 29;

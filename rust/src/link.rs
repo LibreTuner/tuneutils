@@ -1,10 +1,17 @@
+#[cfg(feature = "socketcan")]
 use protocols::can::socketcan::SocketCan;
+#[cfg(feature = "j2534")]
+use protocols::can::j2534can::J2534Can;
+#[cfg(feature = "j2534")]
+extern crate j2534;
+
 use protocols::can::CanInterface;
 use protocols::isotp::{self, IsotpInterface, IsotpCan};
 use protocols::uds::{UdsIsotp, UdsInterface};
 
 use download::{self, Downloader};
 use flash::{self, Flasher};
+use error::Result;
 
 use definition::{self, DownloadMode, FlashMode};
 
@@ -13,21 +20,94 @@ use std::time;
 
 pub trait DataLink {
 	/// Returns a CAN interface if supported
-	fn can(&self) -> Option<Rc<CanInterface>>;
+	fn can(&self, baudrate: usize) -> Option<Rc<CanInterface>>;
 
 	/// Returns an ISO-TP interface if supported
 	fn isotp(&self, options: isotp::Options) -> Option<Rc<IsotpInterface>>;
 }
 
+#[cfg(feature = "socketcan")]
 pub struct SocketCanDataLink {
 	interface: Rc<SocketCan>,
 }
 
 
+#[cfg(feature = "j2534")]
 pub struct J2534DataLink {
-
+	device: Rc<j2534::Device>,
 }
 
+#[cfg(feature = "j2534")]
+impl J2534DataLink {
+	pub fn new(device: Rc<j2534::Device>) -> J2534DataLink {
+		J2534DataLink {
+			device,
+		}
+	}
+}
+
+#[cfg(feature = "j2534")]
+impl DataLink for J2534DataLink {
+	fn can(&self, baudrate: usize) -> Option<Rc<CanInterface>> {
+		 // Create a new CAN channel
+		 if let Ok(interface) = J2534Can::connect(self.device.clone(), baudrate as u32) {
+		 	return Some(Rc::new(interface));
+		 }
+		 // TODO: Process error
+		 None
+	}
+
+	fn isotp(&self, options: isotp::Options) -> Option<Rc<IsotpInterface>> {
+		// The PassThru device may have an ISO-TP layer, but we will use CAN for now
+		// TODO: Replace hardcoded baudrate
+		if let Some(interface) = self.can(500000) {
+			return Some(Rc::new(IsotpCan::new(interface, options)));
+		}
+		None
+	}
+}
+
+pub trait DataLinkEntry {
+	/// Creates the datalink
+	fn create(&self) -> Result<Box<DataLink>>;
+}
+
+#[cfg(feature = "j2534")]
+pub struct J2534DataLinkEntry {
+	entry: j2534::Listing,
+}
+
+impl DataLinkEntry for J2534DataLinkEntry {
+	fn create(&self) -> Result<Box<DataLink>> {
+		// Load interface and open any device
+		let interface = Rc::new(j2534::Interface::new(&self.entry.path)?);
+		let device = Rc::new(j2534::Device::open_any(interface)?);
+
+		Ok(Box::new(J2534DataLink::new(device)))
+	}
+}
+
+/// Searches for any connected datalinks
+pub fn discover_datalinks() -> Vec<Box<DataLinkEntry>> {
+	let mut links = Vec::new();
+
+	// Search for PassThru interfaces
+	#[cfg(feature = "j2534")]
+	{
+		if let Ok(list) = j2534::list() {
+			for listing in list {
+				let entry: Box<DataLinkEntry> = Box::new(J2534DataLinkEntry {
+					entry: listing,
+				});
+				links.push(entry);
+			}
+		} // Else, listing failed (TODO: log error?)
+	}
+
+	links
+}
+
+#[cfg(feature = "socketcan")]
 impl SocketCanDataLink {
 	pub fn new(interface: Rc<SocketCan>) -> SocketCanDataLink {
 		SocketCanDataLink {
@@ -36,10 +116,11 @@ impl SocketCanDataLink {
 	}
 }
 
-
+#[cfg(feature = "socketcan")]
 impl DataLink for SocketCanDataLink {
 	/// Returns a CAN interface if supported
-	fn can(&self) -> Option<Rc<CanInterface>> {
+	fn can(&self, _baudrate: usize) -> Option<Rc<CanInterface>> {
+		// The baudrate for the socketcan device is declared externally
 		Some(self.interface.clone())
 	}
 
@@ -54,6 +135,15 @@ impl DataLink for SocketCanDataLink {
 pub struct PlatformLink {
 	link: Box<DataLink>,
 	platform: Rc<definition::Main>,
+}
+
+impl PlatformLink {
+	pub fn new(link: Box<DataLink>, platform: Rc<definition::Main>) -> PlatformLink {
+		PlatformLink {
+			link,
+			platform,
+		}
+	}
 }
 
 impl PlatformLink {

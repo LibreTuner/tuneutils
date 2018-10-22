@@ -1,33 +1,14 @@
 use numvariant::NumVariant;
 use definition::Pid;
 use std::sync::atomic::{AtomicBool, Ordering};
-use protocols::uds::{self, UdsInterface};
+use protocols::uds::UdsInterface;
 use std::thread;
-use std::result;
-use std::convert::From;
 use std::time;
 use std::cell::RefCell;
 
+use error::Result;
+
 extern crate eval;
-
-pub enum Error {
-	Expr(eval::Error),
-	Protocol,
-}
-
-pub type Result<T> = result::Result<T, Error>;
-
-impl From<eval::Error> for Error {
-	fn from(err: eval::Error) -> Error {
-		Error::Expr(err)
-	}
-}
-
-impl From<uds::Error> for Error {
-	fn from(_err: uds::Error) -> Error {
-		Error::Protocol
-	}
-}
 
 pub struct Entry {
 	pub data: RefCell<Vec<NumVariant>>,

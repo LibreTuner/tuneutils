@@ -8,6 +8,7 @@ use tuneutils::protocols::uds::{UdsInterface, UdsIsotp};
 use tuneutils::download;
 use tuneutils::download::Downloader;
 use tuneutils::definition;
+use tuneutils::link;
 
 use std::path::Path;
 use std::collections::HashMap;
@@ -66,6 +67,8 @@ impl Commands {
 }
 
 fn main() {
+    let avail_links = link::discover_datalinks();
+
     let mut commands = Commands::new();
     commands.register("test", Command::new(|_args| {
         println!("TEST");
@@ -75,7 +78,6 @@ fn main() {
 This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
 This is free software, and you are welcome to redistribute it
 under certain conditions; type `show c' for details.");
-
     let mut rl = Editor::<()>::new();
     loop {
         let readline = rl.readline(">> ");
