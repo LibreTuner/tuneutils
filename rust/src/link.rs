@@ -72,11 +72,17 @@ pub trait DataLinkEntry {
 	fn create(&self) -> Result<Box<DataLink>>;
 }
 
+#[cfg(feature = "socketcan")]
+pub struct SocketCanDataLinkEntry {
+
+}
+
 #[cfg(feature = "j2534")]
 pub struct J2534DataLinkEntry {
 	entry: j2534::Listing,
 }
 
+#[cfg(feature = "j2534")]
 impl DataLinkEntry for J2534DataLinkEntry {
 	fn create(&self) -> Result<Box<DataLink>> {
 		// Load interface and open any device
