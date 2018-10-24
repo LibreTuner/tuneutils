@@ -70,6 +70,12 @@ impl DataLink for J2534DataLink {
 pub trait DataLinkEntry {
 	/// Creates the datalink
 	fn create(&self) -> Result<Box<DataLink>>;
+
+	/// Returns the type of datalink
+	fn typename(&self) -> &'static str;
+
+	/// Returns the description of this datalink (specific to type)
+	fn description(&self) -> String;
 }
 
 #[cfg(feature = "socketcan")]
@@ -81,6 +87,14 @@ pub struct SocketCanDataLinkEntry {
 impl DataLinkEntry for SocketCanDataLinkEntry {
 	fn create(&self) -> Result<Box<DataLink>> {
 		Ok(Box::new(SocketCanDataLink::new(Rc::new(SocketCan::open(&self.interface)?))))
+	}
+
+	fn typename(&self) -> &'static str {
+		"SocketCAN"
+	}
+
+	fn description(&self) -> String {
+		String::from("Interface: ") + self.interface
 	}
 }
 
@@ -97,6 +111,14 @@ impl DataLinkEntry for J2534DataLinkEntry {
 		let device = Rc::new(j2534::Device::open_any(interface)?);
 
 		Ok(Box::new(J2534DataLink::new(device)))
+	}
+
+	fn typename(&self) -> &'static str {
+		"PassThru"
+	}
+
+	fn description(&self) -> String {
+		self.entry.name.clone()
 	}
 }
 

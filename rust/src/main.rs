@@ -28,9 +28,9 @@ struct Command<'a> {
 }
 
 impl<'a> Command<'a> {
-    pub fn new<CB: 'static + FnMut(&[&str])>(callback: CB, description: &str) -> Command {
+    pub fn new(callback: Box<FnMut(&[&str]) + 'a>, description: &str) -> Command<'a> {
         Command {
-            callback: Box::new(callback),
+            callback: callback,
             description: description.to_string(),
         }
     }
@@ -67,11 +67,10 @@ impl<'a> Commands<'a> {
 }
 
 fn main() {
+    let mut avail_links = link::discover_datalinks();
     let mut commands = Commands::new();
 
-    let mut avail_links = link::discover_datalinks();
-    
-    commands.register("add_link", Command::new(|args| {
+    commands.register("add_link", Command::new(Box::new(|args| {
         if args.is_empty() {
             println!("Usage: add_link <type> [params]");
             return;
@@ -88,7 +87,14 @@ fn main() {
             },
             _ => println!("Unsupported link type"),
         }
-    }, "Add Link"));
+    }), "Add Link"));
+
+    commands.register("links", Command::new(Box::new(|args| {
+        println!("Type\t\tDescription\t\t\t\tLoaded");
+        for link in avail_links.iter() {
+            println!("{}\t{}\tNo", link.typename(), link.description());
+        }
+    }), "Lists available links"));
 
 
 
