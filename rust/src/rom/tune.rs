@@ -331,8 +331,8 @@ impl Tune {
 		let table_array: Vec<SerializedTable> = serde_yaml::from_str(&contents)?;
 		for table in table_array {
 			// Locate table definition
-			if let Some(table_def) = rom_meta.main.find_table(table.id) {
-				tables.insert(table.id, Table::load_raw(table_def, &table.data, rom_meta.main.endianness)?);
+			if let Some(table_def) = rom_meta.platform.find_table(table.id) {
+				tables.insert(table.id, Table::load_raw(table_def, &table.data, rom_meta.platform.endianness)?);
 			} else {
 				return Err(Error::InvalidTableId);
 			}
@@ -353,7 +353,7 @@ impl Tune {
 				// We only save modified tables
 				tables.push(SerializedTable {
 					id: *table.0,
-					data: table.1.save_raw(self.rom.meta.main.endianness)?,
+					data: table.1.save_raw(self.rom.meta.platform.endianness)?,
 				});
 			}
 		}
@@ -370,12 +370,12 @@ impl Tune {
 	/// Loads a table
 	pub fn load_table(&mut self, id: usize) -> Result<&Table> {
 		// Search for the table id
-		if let Some(table_def) = self.rom.meta.main.tables.iter().find(|ref table| table.id == id) {
+		if let Some(table_def) = self.rom.meta.platform.tables.iter().find(|ref table| table.id == id) {
 			// Get the offset
 			let offset = self.rom.meta.model.table_offsets.get(&id).ok_or(Error::NoTableOffset)?;
 
 			// Load the table from the ROM
-			let table = Table::load_raw(table_def, &self.rom.data[*offset..], self.rom.meta.main.endianness)?;
+			let table = Table::load_raw(table_def, &self.rom.data[*offset..], self.rom.meta.platform.endianness)?;
 			self.tables.insert(id, table);
 			// Unwrap because we just inserted it
 			return Ok(self.tables.get(&id).unwrap());

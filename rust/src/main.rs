@@ -7,11 +7,12 @@ use tuneutils::protocols::can;
 use tuneutils::protocols::isotp;
 use tuneutils::protocols::uds::{UdsInterface, UdsIsotp};
 use tuneutils::download;
-use tuneutils::download::Downloader;
+use tuneutils::download::{DownloadCallback, Downloader};
 use tuneutils::definition;
 use tuneutils::link;
 use tuneutils::definition::Definitions;
 use tuneutils::error::{Result};
+use tuneutils::rom;
 
 use std::path::{PathBuf, Path};
 use std::collections::HashMap;
@@ -74,21 +75,31 @@ impl<'a> Commands<'a> {
 }
 
 struct TuneUtils {
-    config_dir: PathBuf,
-    avail_links: RefCell<Vec<Box<link::DataLinkEntry>>>,
-    definitions: Definitions,
+    pub config_dir: PathBuf,
+    pub data_dir: PathBuf,
+    pub avail_links: RefCell<Vec<Box<link::DataLinkEntry>>>,
+    pub definitions: Definitions,
+    pub roms: RefCell<rom::RomManager>,
 }
 
 impl TuneUtils {
     fn new() -> TuneUtils {
         let proj_dirs = ProjectDirs::from("org", "LibreTuner",  "TuneUtils").unwrap();
         let config_dir = proj_dirs.config_dir().to_path_buf();
+        let data_dir = proj_dirs.data_dir().to_path_buf();
         fs::create_dir_all(&config_dir).unwrap();
+
+        let mut definitions = Definitions::default();
+        definitions.load(&config_dir.join("definitions")).unwrap();
+        let mut roms = rom::RomManager::new(data_dir.join("roms"));
+        roms.load(&definitions).unwrap();
 
         TuneUtils {
             config_dir,
+            data_dir,
             avail_links: RefCell::new(link::discover_datalinks()),
-            definitions: Definitions::default(),
+            definitions,
+            roms: RefCell::new(roms),
         }
     }
 
@@ -97,6 +108,8 @@ impl TuneUtils {
     }
 
     fn run(&mut self) {
+        let tu = RefCell::new(self);
+
         let mut commands = Commands::new();
         commands.register("add_link", Command::new(Box::new(|args| {
             if args.is_empty() {
@@ -111,27 +124,31 @@ impl TuneUtils {
                         println!("Usage: add_link socketcan <interface>");
                         return;
                     }
-                    self.avail_links.borrow_mut().push(Box::new(link::SocketCanDataLinkEntry { interface: args[1].to_string(), }));
+                    let s = tu.borrow_mut();
+                    s.avail_links.borrow_mut().push(Box::new(link::SocketCanDataLinkEntry { interface: args[1].to_string(), }));
                 },
                 _ => println!("Unsupported link type"),
             }
         }), "Add Link"));
 
         commands.register("links", Command::new(Box::new(|args| {
+            let s = tu.borrow_mut();
             println!("Id\tType\t\tDescription\t\t\t\tLoaded");
-            for (i, link) in self.avail_links.borrow().iter().enumerate() {
+            for (i, link) in s.avail_links.borrow().iter().enumerate() {
                 println!("{}\t{}\t{}\tNo", i, link.typename(), link.description());
             }
         }), "Lists available links"));
 
         commands.register("definitions", Command::new(Box::new(|args| {
+            let s = tu.borrow_mut();
             println!("Id\t\tName");
-            for definition in self.definitions.definitions.iter() {
+            for definition in s.definitions.definitions.iter() {
                 println!("{}\t{}", definition.id, definition.name);
             }
         }), "Lists installed platform definitions"));
 
         commands.register("download", Command::new(Box::new(|args| {
+            let mut s = tu.borrow_mut();
             if args.len() < 2 {
                 println!("Usage: download <datalink id> <platform id>");
                 return;
@@ -143,18 +160,18 @@ impl TuneUtils {
             let platform_id = args[1];
 
             // Find the datalink
-            if datalink_id >= self.avail_links.borrow().len() {
+            if datalink_id >= s.avail_links.borrow().len() {
                 println!("Datalink id out of scope");
                 return;
             }
 
-            let datalink = match self.avail_links.borrow()[datalink_id].create() {
+            let datalink = match s.avail_links.borrow()[datalink_id].create() {
                 Ok(link) => link,
                 Err(err) => { println!("Failed to load datalink: {}", err); return; },
             };
 
             // Find the platform
-            let platform = match self.definitions.find(platform_id) {
+            let platform = match s.definitions.find(platform_id) {
                 Some(def) => def,
                 None => { println!("Invalid platform id"); return; },
             };
@@ -166,10 +183,26 @@ impl TuneUtils {
                 None => { println!("Downloading is unsupported on this platform or datalink"); return; },
             };
 
-            let line = Editor::<()>::new().readline("id to save as: ");
-            
+            let mut rl = Editor::<()>::new();
 
+            let name = rl.readline("ROM name: ").unwrap();
+            let id = rl.readline("ROM id: ").unwrap();
             // Begin downloading
+            let data = match downloader.download(&DownloadCallback::with(|progress| {
+                println!("Progress: {}%", progress * 100.0);
+            })) {
+                Ok(res) => res.data,
+                Err(err) => { println!("Failed to download: {}", err); return; },
+            };
+
+            let model = match platform.identify(&data) {
+                Some(model) => model,
+                None => { println!("Failed to identify ROM model"); return; },
+            };
+
+            let rom = s.roms.borrow_mut().new_rom(name, id, platform.clone(), model.clone(), data);
+            s.roms.borrow_mut().save_meta().unwrap();
+            rom.save().unwrap();
         }), "Download firmware"));
 
         println!("LibreTuner  Copyright (C) 2018  The LibreTuner Team
@@ -209,7 +242,6 @@ under certain conditions; type `show c' for details.");
 
 fn main() {
     let mut utils = TuneUtils::new();
-    utils.reload_definitions().unwrap();
     utils.run();
 }
 

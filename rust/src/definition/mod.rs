@@ -74,7 +74,7 @@ pub enum DataType {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Identifier {
 	pub offset: u32,
-	pub data: String,
+	pub data: Vec<u8>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -208,6 +208,28 @@ impl Main {
 	pub fn find_table(&self, id: usize) -> Option<&Table> {
 		// This could be better implemented with a hash table
 		self.tables.iter().find(|ref x| x.id == id)
+	}
+
+	/// Identifies the model of ROM data, or returns None if it could not be identified
+	pub fn identify(&self, data: &[u8]) -> Option<&Rc<Model>> {
+		self.models.iter().find(|&model| model.identify(data))
+	}
+}
+
+impl Model {
+	/// Returns true if the ROM data was identified as this model
+	pub fn identify(&self, data: &[u8]) -> bool {
+		for id in self.identifiers.iter() {
+			if data.len() < id.offset as usize + id.data.len() {
+				// data is too small
+				return false;
+			}
+			if id.data != &data[id.offset as usize..(id.offset as usize + id.data.len())] {
+				return false;
+			}
+		}
+		// All identifiers succeeded
+		return true;
 	}
 }
 

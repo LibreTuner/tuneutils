@@ -24,7 +24,7 @@ pub enum Error {
     InvalidPacket,
 
     Yaml(serde_yaml::Error),
-    InvalidMainId,
+    InvalidPlatformId,
     InvalidModelId,
     InvalidRomId,
     NotLoaded,
