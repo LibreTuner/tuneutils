@@ -223,6 +223,9 @@ impl default::Default for Definitions {
 
 impl Definitions {
 	pub fn load(&mut self, base: &Path) -> Result<()> {
+		if !base.exists() {
+			return Ok(());
+		}
 		for entry in fs::read_dir(base)? {
 			let entry = entry?;
 			let path = entry.path();

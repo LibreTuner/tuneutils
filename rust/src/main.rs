@@ -10,6 +10,8 @@ use tuneutils::download;
 use tuneutils::download::Downloader;
 use tuneutils::definition;
 use tuneutils::link;
+use tuneutils::definition::Definitions;
+use tuneutils::error::{Result};
 
 use std::path::{PathBuf, Path};
 use std::collections::HashMap;
@@ -73,8 +75,8 @@ impl<'a> Commands<'a> {
 
 struct TuneUtils {
     config_dir: PathBuf,
-
     avail_links: RefCell<Vec<Box<link::DataLinkEntry>>>,
+    definitions: Definitions,
 }
 
 impl TuneUtils {
@@ -86,7 +88,12 @@ impl TuneUtils {
         TuneUtils {
             config_dir,
             avail_links: RefCell::new(link::discover_datalinks()),
+            definitions: Definitions::default(),
         }
+    }
+
+    fn reload_definitions(&mut self) -> Result<()> {
+        self.definitions.load(&self.config_dir.join("definitions"))
     }
 
     fn run(&mut self) {
@@ -111,15 +118,56 @@ impl TuneUtils {
         }), "Add Link"));
 
         commands.register("links", Command::new(Box::new(|args| {
-            println!("Type\t\tDescription\t\t\t\tLoaded");
-            for link in self.avail_links.borrow().iter() {
-                println!("{}\t{}\tNo", link.typename(), link.description());
+            println!("Id\tType\t\tDescription\t\t\t\tLoaded");
+            for (i, link) in self.avail_links.borrow().iter().enumerate() {
+                println!("{}\t{}\t{}\tNo", i, link.typename(), link.description());
             }
         }), "Lists available links"));
 
         commands.register("definitions", Command::new(Box::new(|args| {
-            // Stub
-        }), "Lists installed definitions"));
+            println!("Id\t\tName");
+            for definition in self.definitions.definitions.iter() {
+                println!("{}\t{}", definition.id, definition.name);
+            }
+        }), "Lists installed platform definitions"));
+
+        commands.register("download", Command::new(Box::new(|args| {
+            if args.len() < 2 {
+                println!("Usage: download <datalink id> <platform id>");
+                return;
+            }
+            let datalink_id = match args[0].parse::<usize>() {
+                Ok(id) => id,
+                Err(err) => { println!("invalid datalink id"); return; },
+            };
+            let platform_id = args[1];
+
+            // Find the datalink
+            if datalink_id >= self.avail_links.borrow().len() {
+                println!("Datalink id out of scope");
+                return;
+            }
+
+            let datalink = match self.avail_links.borrow()[datalink_id].create() {
+                Ok(link) => link,
+                Err(err) => { println!("Failed to load datalink: {}", err); return; },
+            };
+
+            // Find the platform
+            let platform = match self.definitions.find(platform_id) {
+                Some(def) => def,
+                None => { println!("Invalid platform id"); return; },
+            };
+
+            // Create the platform link
+            let link = link::PlatformLink::new(datalink, platform.clone());
+            let downloader = match link.downloader() {
+                Some(dl) => dl,
+                None => { println!("Downloading is unsupported on this platform or datalink"); return; },
+            };
+
+            // Begin downloading
+        }), "Download firmware"));
 
         println!("LibreTuner  Copyright (C) 2018  The LibreTuner Team
 This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
@@ -158,6 +206,7 @@ under certain conditions; type `show c' for details.");
 
 fn main() {
     let mut utils = TuneUtils::new();
+    utils.reload_definitions().unwrap();
     utils.run();
 }
 
