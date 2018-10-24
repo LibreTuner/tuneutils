@@ -88,10 +88,14 @@ impl TuneUtils {
         let config_dir = proj_dirs.config_dir().to_path_buf();
         let data_dir = proj_dirs.data_dir().to_path_buf();
         fs::create_dir_all(&config_dir).unwrap();
+        fs::create_dir_all(&data_dir).unwrap();
 
         let mut definitions = Definitions::default();
         definitions.load(&config_dir.join("definitions")).unwrap();
-        let mut roms = rom::RomManager::new(data_dir.join("roms"));
+
+        let rom_dir = data_dir.join("roms");
+        fs::create_dir_all(&rom_dir).unwrap();
+        let mut roms = rom::RomManager::new(rom_dir);
         roms.load(&definitions).unwrap();
 
         TuneUtils {
