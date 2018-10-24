@@ -96,6 +96,10 @@ fn main() {
         }
     }), "Lists available links"));
 
+    commands.register("definitions", Command::new(Box::new(|args| {
+        // Stub
+    }), "Lists installed definitions"));
+
 
 
     println!("LibreTuner  Copyright (C) 2018  The LibreTuner Team
