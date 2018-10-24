@@ -189,7 +189,7 @@ impl TuneUtils {
             let id = rl.readline("ROM id: ").unwrap();
             // Begin downloading
             let data = match downloader.download(&DownloadCallback::with(|progress| {
-                println!("Progress: {}%", progress * 100.0);
+                println!("Progress: {:.*}%", 2, progress * 100.0);
             })) {
                 Ok(res) => res.data,
                 Err(err) => { println!("Failed to download: {}", err); return; },
