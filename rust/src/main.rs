@@ -166,6 +166,9 @@ impl TuneUtils {
                 None => { println!("Downloading is unsupported on this platform or datalink"); return; },
             };
 
+            let line = Editor::<()>::new().readline("id to save as: ");
+            
+
             // Begin downloading
         }), "Download firmware"));
 
