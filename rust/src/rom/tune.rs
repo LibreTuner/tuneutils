@@ -304,12 +304,12 @@ impl Table {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct TuneMeta {
-	name: String,
-	id: String,
-	rom_id: String,
+	pub name: String,
+	pub id: String,
+	pub rom_id: String,
 
 	#[serde(skip)]
-	data_path: PathBuf,
+	pub data_path: PathBuf,
 }
 
 pub struct Tune {
@@ -327,14 +327,17 @@ impl Tune {
 
 		let mut tables = HashMap::new();
 		// Load tables from file
-		let contents = fs::read_to_string(&meta.data_path)?;
-		let table_array: Vec<SerializedTable> = serde_yaml::from_str(&contents)?;
-		for table in table_array {
-			// Locate table definition
-			if let Some(table_def) = rom_meta.platform.find_table(table.id) {
-				tables.insert(table.id, Table::load_raw(table_def, &table.data, rom_meta.platform.endianness)?);
-			} else {
-				return Err(Error::InvalidTableId);
+		if meta.data_path.exists() {
+			// A blank tune may not have a file, in which case it is the same as the unmodified ROM
+			let contents = fs::read_to_string(&meta.data_path)?;
+			let table_array: Vec<SerializedTable> = serde_yaml::from_str(&contents)?;
+			for table in table_array {
+				// Locate table definition
+				if let Some(table_def) = rom_meta.platform.find_table(table.id) {
+					tables.insert(table.id, Table::load_raw(table_def, &table.data, rom_meta.platform.endianness)?);
+				} else {
+					return Err(Error::InvalidTableId);
+				}
 			}
 		}
 
@@ -396,7 +399,7 @@ impl Tune {
 
 #[derive(Debug)]
 pub struct TuneManager {
-	tunes: Vec<TuneMeta>,
+	pub tunes: Vec<TuneMeta>,
 	base: PathBuf,
 }
 
@@ -428,12 +431,12 @@ impl TuneManager {
 		self.tunes.push(tune.meta.clone());
 	}
 
-	fn add_meta(&mut self, name: String, id: String, rom_id: String) {
+	pub fn add_meta(&mut self, name: String, id: String, rom_id: String) {
 		self.tunes.push(TuneMeta {
+			data_path: self.base.join(&id),
 			name,
 			id,
 			rom_id,
-			data_path: PathBuf::default(),
 		})
 	}
 

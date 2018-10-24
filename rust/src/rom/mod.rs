@@ -68,7 +68,7 @@ impl RomMeta {
 
 pub struct RomManager {
 	base: PathBuf,
-	roms: Vec<RomMeta>,
+	pub roms: Vec<RomMeta>,
 	loaded_roms: RefCell<HashMap<String, Weak<Rom>>>,
 }
 

@@ -80,6 +80,7 @@ struct TuneUtils {
     pub avail_links: RefCell<Vec<Box<link::DataLinkEntry>>>,
     pub definitions: Definitions,
     pub roms: RefCell<rom::RomManager>,
+    pub tunes: rom::tune::TuneManager,
 }
 
 impl TuneUtils {
@@ -98,12 +99,18 @@ impl TuneUtils {
         let mut roms = rom::RomManager::new(rom_dir);
         roms.load(&definitions).unwrap();
 
+        let tune_dir = data_dir.join("tunes");
+        fs::create_dir_all(&tune_dir).unwrap();
+        let tunes = rom::tune::TuneManager::load(tune_dir).unwrap();
+
+
         TuneUtils {
             config_dir,
             data_dir,
             avail_links: RefCell::new(link::discover_datalinks()),
             definitions,
             roms: RefCell::new(roms),
+            tunes,
         }
     }
 
@@ -135,6 +142,8 @@ impl TuneUtils {
             }
         }), "Add Link"));
 
+
+
         commands.register("links", Command::new(Box::new(|args| {
             let s = tu.borrow_mut();
             println!("Id\tType\t\tDescription\t\t\t\tLoaded");
@@ -143,6 +152,8 @@ impl TuneUtils {
             }
         }), "Lists available links"));
 
+
+
         commands.register("definitions", Command::new(Box::new(|args| {
             let s = tu.borrow_mut();
             println!("Id\t\tName");
@@ -150,6 +161,8 @@ impl TuneUtils {
                 println!("{}\t{}", definition.id, definition.name);
             }
         }), "Lists installed platform definitions"));
+
+
 
         commands.register("download", Command::new(Box::new(|args| {
             let mut s = tu.borrow_mut();
@@ -207,7 +220,57 @@ impl TuneUtils {
             let rom = s.roms.borrow_mut().new_rom(name, id, platform.clone(), model.clone(), data);
             s.roms.borrow_mut().save_meta().unwrap();
             rom.save().unwrap();
-        }), "Download firmware"));
+        }), "Downloads firmware"));
+
+
+
+        commands.register("roms", Command::new(Box::new(|args| {
+            let s = tu.borrow();
+            println!("Id\tName\tPlatform\t\t\t\t\tModel");
+            for rom in s.roms.borrow().roms.iter() {
+                println!("{}\t{}\t{}\t{}", rom.id, rom.name, rom.platform.name, rom.model.name);
+            }
+        }), "Lists ROMs"));
+
+
+
+        commands.register("tunes", Command::new(Box::new(|args| {
+            let s = tu.borrow();
+            println!("Id\tName\tROM Id");
+            for tune in s.tunes.tunes.iter() {
+                println!("{}\t{}\t{}", tune.id, tune.name, tune.rom_id);
+            }
+        }), "Lists tunes"));
+
+
+
+        commands.register("create_tune", Command::new(Box::new(|args| {
+            let mut s = tu.borrow_mut();
+
+            if args.len() < 3 {
+                println!("Usage: create_tune <id> <name> <rom id>");
+                return;
+            }
+
+            let id = args[0];
+            let name = args[1];
+
+            {
+                // Just check that the ROM exists
+                let roms = s.roms.borrow();
+                match roms.search(args[2]) {
+                    Some(meta) => meta,
+                    None => { println!("Invalid ROM id"); return; },
+                };
+            }
+
+            // Add to tunes
+            s.tunes.add_meta(name.to_string(), id.to_string(), args[2].to_string());
+            s.tunes.save().unwrap();
+
+        }), "Creates a new tune from a ROM"));
+
+
 
         println!("LibreTuner  Copyright (C) 2018  The LibreTuner Team
 This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
@@ -215,7 +278,7 @@ This is free software, and you are welcome to redistribute it
 under certain conditions; type `show c' for details.");
         let mut rl = Editor::<()>::new();
         loop {
-            let readline = rl.readline(">> ");
+            let readline = rl.readline("\n>> ");
             match readline {
                 Ok(line) => {
                     rl.add_history_entry(line.as_ref());
