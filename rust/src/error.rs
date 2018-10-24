@@ -4,6 +4,7 @@ extern crate serde_yaml;
 use std::result;
 use std::io;
 use std::fmt;
+use std::error;
 
 
 #[derive(Debug)]
@@ -80,7 +81,7 @@ impl fmt::Display for Error {
     }
 }
 
-impl std::error::Error for Error {
+impl error::Error for Error {
     fn description(&self) -> &str {
         self.as_str()
     }

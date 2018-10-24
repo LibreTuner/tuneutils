@@ -22,12 +22,12 @@ use can::SocketCan;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
-struct Command {
-    callback: Box<FnMut(&[&str])>,
+struct Command<'a> {
+    callback: Box<FnMut(&[&str]) + 'a>,
     description: String,
 }
 
-impl Command {
+impl<'a> Command<'a> {
     pub fn new<CB: 'static + FnMut(&[&str])>(callback: CB, description: &str) -> Command {
         Command {
             callback: Box::new(callback),
@@ -36,18 +36,18 @@ impl Command {
     }
 }
 
-struct Commands {
-    pub commands: HashMap<String, Command>,
+struct Commands<'a> {
+    pub commands: HashMap<String, Command<'a>>,
 }
 
-impl Commands {
-    pub fn new() -> Commands {
+impl<'a> Commands<'a> {
+    pub fn new() -> Commands<'a> {
         Commands {
             commands: HashMap::new(),
         }
     }
 
-    pub fn register(&mut self, name: &str, command: Command) {
+    pub fn register(&mut self, name: &str, command: Command<'a>) {
         self.commands.insert(name.to_string(), command);
     }
 
@@ -67,12 +67,30 @@ impl Commands {
 }
 
 fn main() {
-    let avail_links = link::discover_datalinks();
-
     let mut commands = Commands::new();
-    commands.register("test", Command::new(|_args| {
-        println!("TEST");
-    }, "Test command"));
+
+    let mut avail_links = link::discover_datalinks();
+    
+    commands.register("add_link", Command::new(|args| {
+        if args.is_empty() {
+            println!("Usage: add_link <type> [params]");
+            return;
+        }
+
+        match args[0] {
+            #[cfg(feature = "socketcan")]
+            "socketcan" => {
+                if args.len() < 2 {
+                    println!("Usage: add_link socketcan <interface>");
+                    return;
+                }
+                avail_links.push(Box::new(link::SocketCanDataLinkEntry { interface: args[1].to_string(), }));
+            },
+            _ => println!("Unsupported link type"),
+        }
+    }, "Add Link"));
+
+
 
     println!("LibreTuner  Copyright (C) 2018  The LibreTuner Team
 This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
