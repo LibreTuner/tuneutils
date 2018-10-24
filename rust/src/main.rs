@@ -79,8 +79,12 @@ struct TuneUtils {
 
 impl TuneUtils {
     fn new() -> TuneUtils {
+        let proj_dirs = ProjectDirs::from("org", "LibreTuner",  "TuneUtils").unwrap();
+        let config_dir = proj_dirs.config_dir().to_path_buf();
+        fs::create_dir_all(&config_dir).unwrap();
+
         TuneUtils {
-            config_dir: PathBuf::new(),
+            config_dir,
             avail_links: RefCell::new(link::discover_datalinks()),
         }
     }
@@ -150,21 +154,10 @@ under certain conditions; type `show c' for details.");
             }
         }
     }
-
-    fn setup_dirs(&mut self) {
-        if let Some(proj_dirs) = ProjectDirs::from("org", "LibreTuner",  "TuneUtils") {
-            self.config_dir = proj_dirs.config_dir().to_path_buf();
-
-            fs::create_dir_all(&self.config_dir).unwrap();
-        }
-    }
-
-
 }
 
 fn main() {
     let mut utils = TuneUtils::new();
-    utils.setup_dirs();
     utils.run();
 }
 
