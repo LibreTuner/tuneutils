@@ -94,7 +94,7 @@ impl DataLinkEntry for SocketCanDataLinkEntry {
 	}
 
 	fn description(&self) -> String {
-		String::from("Interface: ") + self.interface
+		String::from("Interface: ") + &self.interface
 	}
 }
 

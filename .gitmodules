@@ -1,3 +1,6 @@
 [submodule "rust/j2534"]
 	path = rust/j2534
 	url = https://github.com/Altenius/j2534-rs.git
+[submodule "rust/src/resources/definitions"]
+	path = rust/src/resources/definitions
+	url = https://github.com/LibreTuner/Definitions.git

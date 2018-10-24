@@ -1,6 +1,7 @@
 extern crate tuneutils;
 extern crate rustyline;
 extern crate clap;
+extern crate directories;
 
 use tuneutils::protocols::can;
 use tuneutils::protocols::isotp;
@@ -10,9 +11,13 @@ use tuneutils::download::Downloader;
 use tuneutils::definition;
 use tuneutils::link;
 
-use std::path::Path;
+use std::path::{PathBuf, Path};
 use std::collections::HashMap;
 use std::default::Default;
+use std::fs;
+use std::cell::RefCell;
+
+use directories::{BaseDirs, UserDirs, ProjectDirs};
 
 use can::{CanInterface, CanInterfaceIterator};
 use isotp::IsotpInterface;
@@ -66,74 +71,101 @@ impl<'a> Commands<'a> {
     }
 }
 
-fn main() {
-    let mut avail_links = link::discover_datalinks();
-    let mut commands = Commands::new();
+struct TuneUtils {
+    config_dir: PathBuf,
 
-    commands.register("add_link", Command::new(Box::new(|args| {
-        if args.is_empty() {
-            println!("Usage: add_link <type> [params]");
-            return;
+    avail_links: RefCell<Vec<Box<link::DataLinkEntry>>>,
+}
+
+impl TuneUtils {
+    fn new() -> TuneUtils {
+        TuneUtils {
+            config_dir: PathBuf::new(),
+            avail_links: RefCell::new(link::discover_datalinks()),
         }
+    }
 
-        match args[0] {
-            #[cfg(feature = "socketcan")]
-            "socketcan" => {
-                if args.len() < 2 {
-                    println!("Usage: add_link socketcan <interface>");
-                    return;
-                }
-                avail_links.push(Box::new(link::SocketCanDataLinkEntry { interface: args[1].to_string(), }));
-            },
-            _ => println!("Unsupported link type"),
-        }
-    }), "Add Link"));
+    fn run(&mut self) {
+        let mut commands = Commands::new();
+        commands.register("add_link", Command::new(Box::new(|args| {
+            if args.is_empty() {
+                println!("Usage: add_link <type> [params]");
+                return;
+            }
 
-    commands.register("links", Command::new(Box::new(|args| {
-        println!("Type\t\tDescription\t\t\t\tLoaded");
-        for link in avail_links.iter() {
-            println!("{}\t{}\tNo", link.typename(), link.description());
-        }
-    }), "Lists available links"));
+            match args[0] {
+                #[cfg(feature = "socketcan")]
+                "socketcan" => {
+                    if args.len() < 2 {
+                        println!("Usage: add_link socketcan <interface>");
+                        return;
+                    }
+                    self.avail_links.borrow_mut().push(Box::new(link::SocketCanDataLinkEntry { interface: args[1].to_string(), }));
+                },
+                _ => println!("Unsupported link type"),
+            }
+        }), "Add Link"));
 
-    commands.register("definitions", Command::new(Box::new(|args| {
-        // Stub
-    }), "Lists installed definitions"));
+        commands.register("links", Command::new(Box::new(|args| {
+            println!("Type\t\tDescription\t\t\t\tLoaded");
+            for link in self.avail_links.borrow().iter() {
+                println!("{}\t{}\tNo", link.typename(), link.description());
+            }
+        }), "Lists available links"));
 
+        commands.register("definitions", Command::new(Box::new(|args| {
+            // Stub
+        }), "Lists installed definitions"));
 
-
-    println!("LibreTuner  Copyright (C) 2018  The LibreTuner Team
+        println!("LibreTuner  Copyright (C) 2018  The LibreTuner Team
 This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
 This is free software, and you are welcome to redistribute it
 under certain conditions; type `show c' for details.");
-    let mut rl = Editor::<()>::new();
-    loop {
-        let readline = rl.readline(">> ");
-        match readline {
-            Ok(line) => {
-                rl.add_history_entry(line.as_ref());
-                
-                let parts: Vec<&str> = line.split(' ').collect();
-                if parts.len() == 0 {
-                    continue;
-                }
+        let mut rl = Editor::<()>::new();
+        loop {
+            let readline = rl.readline(">> ");
+            match readline {
+                Ok(line) => {
+                    rl.add_history_entry(line.as_ref());
+                    
+                    let parts: Vec<&str> = line.split(' ').collect();
+                    if parts.len() == 0 {
+                        continue;
+                    }
 
-                commands.call(parts[0], &parts[1..]);
-            },
-            Err(ReadlineError::Interrupted) => {
-                println!("Terminated");
-                break
-            },
-            Err(ReadlineError::Eof) => {
-                // println!("CTRL-D");
-                break
-            },
-            Err(err) => {
-                println!("Error: {:?}", err);
-                break
+                    commands.call(parts[0], &parts[1..]);
+                },
+                Err(ReadlineError::Interrupted) => {
+                    println!("Terminated");
+                    break
+                },
+                Err(ReadlineError::Eof) => {
+                    // println!("CTRL-D");
+                    break
+                },
+                Err(err) => {
+                    println!("Error: {:?}", err);
+                    break
+                }
             }
         }
     }
+
+    fn setup_dirs(&mut self) {
+        if let Some(proj_dirs) = ProjectDirs::from("org", "LibreTuner",  "TuneUtils") {
+            self.config_dir = proj_dirs.config_dir().to_path_buf();
+
+            fs::create_dir_all(&self.config_dir).unwrap();
+        }
+    }
+
+
+}
+
+fn main() {
+    let mut utils = TuneUtils::new();
+    utils.setup_dirs();
+    utils.run();
 }
 
 /*
