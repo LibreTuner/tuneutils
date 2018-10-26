@@ -41,18 +41,18 @@ pub enum Error {
 pub type Result<T> = result::Result<T, Error>;
 
 impl Error {
-    fn as_str(&self) -> &str {
+    fn as_str(&self) -> String {
         match *self {
-            Error::Io(ref _io) => "io error",
-            Error::InvalidConnection => "invalid connection",
-            Error::InvalidResponse => "invalid response",
-            Error::Timeout => "timed out",
-            Error::TooMuchData => "too much data",
-            Error::IncompleteWrite => "only part of the data could be written",
-            Error::Read => "failed to read",
+            Error::Io(ref _io) => String::from("io error"),
+            Error::InvalidConnection => String::from("invalid connection"),
+            Error::InvalidResponse => String::from("invalid response"),
+            Error::Timeout => String::from("timed out"),
+            Error::TooMuchData => String::from("too much data"),
+            Error::IncompleteWrite => String::from("only part of the data could be written"),
+            Error::Read => String::from("failed to read"),
             #[cfg(feature = "j2534")]
-            Error::J2534(ref _err) => "J2534 error",
-            _ => unimplemented!(),
+            Error::J2534(ref _err) => String::from("J2534 error"),
+            _ => format!("unimplemented: {:?}", *self)
         }
     }
 }
@@ -80,9 +80,9 @@ impl fmt::Display for Error {
         write!(f, "{}", self.as_str())
     }
 }
-
+/*
 impl error::Error for Error {
     fn description(&self) -> &str {
         self.as_str()
     }
-}
+}*/

@@ -114,7 +114,7 @@ pub struct Table {
 	pub axis_y_id: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Pid {
 	pub name: String,
 	pub description: String,

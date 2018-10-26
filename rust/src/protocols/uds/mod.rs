@@ -19,6 +19,7 @@ pub const UDS_REQ_READMEM: u8 = 0x23;
 pub const UDS_REQ_REQUESTDOWNLOAD: u8 = 0x34;
 pub const UDS_REQ_REQUESTUPLOAD: u8 = 0x35;
 pub const UDS_REQ_TRANSFERDATA: u8 = 0x36;
+pub const UDS_REQ_READDATABYID: u8 = 0x22;
 
 // Negative response codes
 // requestCorrectlyReceivedResponsePending
@@ -74,5 +75,22 @@ pub trait UdsInterface {
 	    	writer.write_u16::<BigEndian>(length).unwrap();
 		}
 		self.request(UDS_REQ_READMEM, &request)
+    }
+
+    fn read_data_by_identifier(&self, id: u16) -> Result<Vec<u8>> {
+        let request = &[(id >> 8) as u8, (id & 0xFF) as u8];
+        let mut res = self.request(UDS_REQ_READDATABYID, request)?;
+        if res.len() < 2 {
+            return Err(Error::InvalidPacket);
+        }
+        if res[0] != request[0] || res[1] != request[1] {
+            // Check dataIdentifier
+            return Err(Error::InvalidPacket);
+        }
+        // Remove dataIdentifier
+        res.remove(0);
+        res.remove(0);
+        // Return dataRecord
+        Ok(res)
     }
 }

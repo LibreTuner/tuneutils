@@ -13,6 +13,7 @@ use tuneutils::link;
 use tuneutils::definition::Definitions;
 use tuneutils::error::{Result};
 use tuneutils::rom;
+use tuneutils::datalog;
 
 use std::path::{PathBuf, Path};
 use std::collections::HashMap;
@@ -270,6 +271,53 @@ impl TuneUtils {
 
         }), "Creates a new tune from a ROM"));
 
+
+
+        commands.register("log", Command::new(Box::new(|args| {
+            let mut s = tu.borrow_mut();
+            if args.len() < 2 {
+                println!("Usage: download <datalink id> <platform id>");
+                return;
+            }
+            let datalink_id = match args[0].parse::<usize>() {
+                Ok(id) => id,
+                Err(err) => { println!("invalid datalink id"); return; },
+            };
+            let platform_id = args[1];
+
+            // Find the datalink
+            if datalink_id >= s.avail_links.borrow().len() {
+                println!("Datalink id out of scope");
+                return;
+            }
+
+            let datalink = match s.avail_links.borrow()[datalink_id].create() {
+                Ok(link) => link,
+                Err(err) => { println!("Failed to load datalink: {}", err); return; },
+            };
+
+            // Find the platform
+            let platform = match s.definitions.find(platform_id) {
+                Some(def) => def,
+                None => { println!("Invalid platform id"); return; },
+            };
+
+            let link = link::PlatformLink::new(datalink, platform.clone());
+            let mut logger = match link.datalogger() {
+                Some(dl) => dl,
+                None => { println!("Datalogging is unsupported on this platform or datalink"); return; },
+            };
+
+            let mut log = datalog::Log::default();
+            // Add all PIDs for now
+            for pid in platform.pids.iter() {
+                log.add_entry(pid.clone());
+            }
+
+            if let Err(err) = logger.run(&mut log) {
+                println!("Datalogger failed: {}", err);
+            }
+        }), "Datalog"));
 
 
         println!("LibreTuner  Copyright (C) 2018  The LibreTuner Team

@@ -13,7 +13,8 @@ use download::{self, Downloader};
 use flash::{self, Flasher};
 use error::Result;
 
-use definition::{self, DownloadMode, FlashMode};
+use definition::{self, DownloadMode, FlashMode, LogMode};
+use datalog;
 
 use std::rc::Rc;
 use std::time;
@@ -225,6 +226,19 @@ impl PlatformLink {
 			FlashMode::Mazda1 => {
 				if let Some(uds_interface) = self.uds() {
 					return Some(Box::new(flash::mazda::Mazda1Flasher::new(uds_interface, &self.platform.transfer.key)));
+				}
+				None
+			},
+			_ => None,
+		}
+	}
+
+	/// Returns the datalogging interface for the platform, if supported by the platform AND datalink
+	pub fn datalogger(&self) -> Option<Box<datalog::Logger>> {
+		match self.platform.log_mode {
+			LogMode::Uds => {
+				if let Some(uds_interface) = self.uds() {
+					return Some(Box::new(datalog::UdsLogger::new(uds_interface)));
 				}
 				None
 			},
