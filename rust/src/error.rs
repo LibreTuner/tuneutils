@@ -1,5 +1,6 @@
 extern crate eval;
 extern crate serde_yaml;
+#[cfg(feature = "j2534")]
 extern crate j2534;
 
 use std::result;
@@ -40,23 +41,6 @@ pub enum Error {
 
 pub type Result<T> = result::Result<T, Error>;
 
-impl Error {
-    fn as_str(&self) -> String {
-        match *self {
-            Error::Io(ref _io) => String::from("io error"),
-            Error::InvalidConnection => String::from("invalid connection"),
-            Error::InvalidResponse => String::from("invalid response"),
-            Error::Timeout => String::from("timed out"),
-            Error::TooMuchData => String::from("too much data"),
-            Error::IncompleteWrite => String::from("only part of the data could be written"),
-            Error::Read => String::from("failed to read"),
-            #[cfg(feature = "j2534")]
-            Error::J2534(ref _err) => String::from("J2534 error"),
-            _ => format!("unimplemented: {:?}", *self)
-        }
-    }
-}
-
 impl From<io::Error> for Error {
     fn from(error: io::Error) -> Self {
         Error::Io(error)
@@ -77,12 +61,29 @@ impl From<eval::Error> for Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_str())
+        match *self {
+            Error::Io(ref err) => write!(f, "IO error: {}", err),
+            Error::Eval(ref err) => write!(f, "Eval error: {}", err),
+            Error::InvalidConnection => write!(f, "Invalid connection"),
+            Error::InvalidResponse => write!(f, "Invalid response"),
+            Error::Timeout => write!(f, "Timed out"),
+            Error::TooMuchData => write!(f, "Too much data"),
+            Error::IncompleteWrite => write!(f, "Failed to finish writing data"),
+            Error::Read => write!(f, "Read failed"),
+            Error::InvalidFrame => write!(f, "Invalid frame"),
+            Error::NegativeResponse(code) => write!(f, "Negative ISO-TP response received ({})", code),
+            Error::InvalidPacket => write!(f, "Invalid packet received"),
+            Error::Yaml(ref err) => write!(f, "Yaml error: {}", err),
+            Error::InvalidPlatformId => write!(f, "Invalid platform id"),
+            Error::InvalidModelId => write!(f, "Invalid model id"),
+            Error::InvalidRomId => write!(f, "Invalid rom id"),
+            Error::NotLoaded => write!(f, "Not loaded"),
+            Error::InvalidTableId => write!(f, "Invalid table id"),
+            Error::NoTableOffset => write!(f, "No table offset"),
+            Error::EmptyPacket => write!(f, "Received an empty packet"),
+            #[cfg(feature = "j2534")]
+            Error::J2534(ref err) => write!(f, "J2534 error: {}", err),
+            _ => write!(f, "unimplemented: {:?}", *self),
+        }
     }
 }
-/*
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        self.as_str()
-    }
-}*/
