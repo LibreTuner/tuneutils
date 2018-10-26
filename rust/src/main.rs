@@ -155,7 +155,7 @@ impl TuneUtils {
 
 
 
-        commands.register("definitions", Command::new(Box::new(|args| {
+        commands.register("platforms", Command::new(Box::new(|args| {
             let s = tu.borrow_mut();
             println!("Id\t\tName");
             for definition in s.definitions.definitions.iter() {
@@ -222,6 +222,27 @@ impl TuneUtils {
             s.roms.borrow_mut().save_meta().unwrap();
             rom.save().unwrap();
         }), "Downloads firmware"));
+
+
+
+        commands.register("pids", Command::new(Box::new(|args| {
+            let mut s = tu.borrow_mut();
+            if args.is_empty() {
+                println!("Usage: pids <platform id>");
+                return;
+            }
+
+            // Find the platform
+            let platform = match s.definitions.find(args[0]) {
+                Some(def) => def,
+                None => { println!("Invalid platform id"); return; },
+            };
+
+            println!("Id\tName\tDescription");
+            for pid in platform.pids.iter() {
+                println!("{}\t{}\t{}", pid.id, pid.name, pid.description);
+            }
+        }), "Lists the PIDs of a platform"));
 
 
 
