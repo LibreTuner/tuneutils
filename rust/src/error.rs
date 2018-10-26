@@ -1,10 +1,10 @@
 extern crate eval;
 extern crate serde_yaml;
+extern crate j2534;
 
 use std::result;
 use std::io;
 use std::fmt;
-use std::error;
 
 
 #[derive(Debug)]
