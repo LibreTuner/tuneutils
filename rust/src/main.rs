@@ -149,7 +149,7 @@ impl TuneUtils {
             let s = tu.borrow_mut();
             println!("Id\tType\t\tDescription\t\t\t\tLoaded");
             for (i, link) in s.avail_links.borrow().iter().enumerate() {
-                println!("{}\t{}\t{}\tNo", i, link.typename(), link.description());
+                println!("{}    {}    {}    No", i, link.typename(), link.description());
             }
         }), "Lists available links"));
 
@@ -326,7 +326,7 @@ This is free software, and you are welcome to redistribute it
 under certain conditions; type `show c' for details.");
         let mut rl = Editor::<()>::new();
         loop {
-            let readline = rl.readline("\n>> ");
+            let readline = rl.readline(">> ");
             match readline {
                 Ok(line) => {
                     rl.add_history_entry(line.as_ref());
