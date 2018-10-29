@@ -1,7 +1,13 @@
+#[macro_use]
+extern crate conrod;
+extern crate find_folder;
+
 extern crate tuneutils;
 extern crate rustyline;
 extern crate clap;
 extern crate directories;
+
+use conrod::backend::glium::glium::{self, Surface};
 
 use tuneutils::protocols::can;
 use tuneutils::protocols::isotp;
@@ -20,6 +26,8 @@ use std::collections::HashMap;
 use std::default::Default;
 use std::fs;
 use std::cell::RefCell;
+use std::sync::{Mutex, Arc};
+use std::thread;
 
 use directories::{BaseDirs, UserDirs, ProjectDirs};
 
@@ -82,6 +90,13 @@ struct TuneUtils {
     pub definitions: Definitions,
     pub roms: RefCell<rom::RomManager>,
     pub tunes: rom::tune::TuneManager,
+}
+
+struct LogEntry {
+    id: u32,
+    name: String,
+    data: f64,
+    unit: String,
 }
 
 impl TuneUtils {
@@ -296,8 +311,8 @@ impl TuneUtils {
 
         commands.register("log", Command::new(Box::new(|args| {
             let mut s = tu.borrow_mut();
-            if args.len() < 2 {
-                println!("Usage: download <datalink id> <platform id>");
+            if args.len() < 3 {
+                println!("Usage: download <datalink id> <platform id> <pids>");
                 return;
             }
             let datalink_id = match args[0].parse::<usize>() {
@@ -305,6 +320,7 @@ impl TuneUtils {
                 Err(err) => { println!("invalid datalink id"); return; },
             };
             let platform_id = args[1];
+            let pids: Vec<&str> = args[2].split(",").collect();
 
             // Find the datalink
             if datalink_id >= s.avail_links.borrow().len() {
@@ -329,15 +345,41 @@ impl TuneUtils {
                 None => { println!("Datalogging is unsupported on this platform or datalink"); return; },
             };
 
-            let mut log = datalog::Log::default();
+            let entries = Arc::new(Mutex::new(Vec::new()));
+
+            let mut log = datalog::Log::new(platform.clone());
             // Add all PIDs for now
             for pid in platform.pids.iter() {
-                log.add_entry(pid.clone());
+                //if pid.id  == 3 || pid.id == 5 || pid.id == 0 {
+                if pids.iter().find(|p| pid.id.to_string() == **p) != None {
+                    log.add_entry(pid);
+                    logger.add_entry(pid);
+                    entries.lock().unwrap().push(LogEntry {
+                        id: pid.id,
+                        name: pid.name.to_owned(),
+                        data: 0.0,
+                        unit: pid.unit.to_owned(),
+                    })
+                }
             }
+
+            {
+                let entries = entries.clone();
+                log.register(move |entry, num| {
+                    if let Some(e) = entries.lock().unwrap().iter_mut().find(|ref x| x.id == entry.pid_id) {
+                        e.data = f64::from(num);
+                    }
+                });
+            }
+
+            let handle = thread::spawn(move || {
+                run_ui(entries);
+            });
 
             if let Err(err) = logger.run(&mut log) {
                 println!("Datalogger failed: {}", err);
             }
+            handle.join().unwrap();
         }), "Datalog"));
 
 
@@ -376,9 +418,178 @@ under certain conditions; type `show c' for details.");
     }
 }
 
+/// This `Iterator`-like type simplifies some of the boilerplate involved in setting up a
+/// glutin+glium event loop that works efficiently with conrod.
+pub struct EventLoop {
+    ui_needs_update: bool,
+    last_update: std::time::Instant,
+}
+
+impl EventLoop {
+
+    pub fn new() -> Self {
+        EventLoop {
+            last_update: std::time::Instant::now(),
+            ui_needs_update: true,
+        }
+    }
+
+    /// Produce an iterator yielding all available events.
+    pub fn next(&mut self, events_loop: &mut glium::glutin::EventsLoop) -> Vec<glium::glutin::Event> {
+        // We don't want to loop any faster than 60 FPS, so wait until it has been at least 16ms
+        // since the last yield.
+        let last_update = self.last_update;
+        let sixteen_ms = std::time::Duration::from_millis(16);
+        let duration_since_last_update = std::time::Instant::now().duration_since(last_update);
+        if duration_since_last_update < sixteen_ms {
+            std::thread::sleep(sixteen_ms - duration_since_last_update);
+        }
+
+        // Collect all pending events.
+        let mut events = Vec::new();
+        events_loop.poll_events(|event| events.push(event));
+
+        // If there are no events and the `Ui` does not need updating, wait for the next event.
+        /*if events.is_empty() && !self.ui_needs_update {
+            events_loop.run_forever(|event| {
+                events.push(event);
+                glium::glutin::ControlFlow::Break
+            });
+        }*/
+
+        self.ui_needs_update = false;
+        self.last_update = std::time::Instant::now();
+
+        events
+    }
+
+    /// Notifies the event loop that the `Ui` requires another update whether or not there are any
+    /// pending events.
+    ///
+    /// This is primarily used on the occasion that some part of the `Ui` is still animating and
+    /// requires further updates to do so.
+    pub fn needs_update(&mut self) {
+        self.ui_needs_update = true;
+    }
+
+}
+
+widget_ids!(struct Ids
+    {
+        text,
+        canvas,
+        list,
+    });
+
+fn set_ui(ref mut ui: conrod::UiCell, ids: &Ids, entries: &Vec<LogEntry>) {
+    use conrod::{widget, Positionable, Colorable, Widget, Sizeable};
+
+    const MARGIN: conrod::Scalar = 30.0;
+    const SHAPE_GAP: conrod::Scalar = 50.0;
+    const TITLE_SIZE: conrod::FontSize = 42;
+    const SUBTITLE_SIZE: conrod::FontSize = 32;
+
+    // `Canvas` is a widget that provides some basic functionality for laying out children widgets.
+    // By default, its size is the size of the window. We'll use this as a background for the
+    // following widgets, as well as a scrollable container for the children widgets.
+    widget::Canvas::new().color(conrod::color::DARK_CHARCOAL).set(ids.canvas, ui);
+
+    let (mut items, scrollbar) = widget::List::flow_down(entries.len())
+            .item_size(20.0)
+            .scrollbar_on_top()
+            .middle_of(ids.canvas)
+            .wh_of(ids.canvas)
+    .set(ids.list, ui);
+
+    while let Some(item) = items.next(ui) {
+        let i = item.i;
+        let label = format!("{}: {} {}", entries[i].name, entries[i].data, entries[i].unit);
+        let lab = widget::Text::new(&label)
+            .color(conrod::color::WHITE)
+            .font_size(12);
+        item.set(lab, ui);
+        /*let toggle = widget::Toggle::new(list[i])
+            .label(&label)
+            .label_color(conrod::color::WHITE)
+            .color(conrod::color::LIGHT_BLUE);
+        for v in item.set(toggle, ui) {
+            list[i] = v;
+        }*/
+    }
+
+    if let Some(s) = scrollbar { s.set(ui) }
+}
+
+fn run_ui(log: Arc<Mutex<Vec<LogEntry>>>) {
+    const WIDTH: u32 = 400;
+    const HEIGHT: u32 = 200;
+
+    let mut events_loop = glium::glutin::EventsLoop::new();
+    let window = glium::glutin::WindowBuilder::new()
+                    .with_title("Hello Conrod")
+                    .with_dimensions((WIDTH, HEIGHT).into());
+    let context = glium::glutin::ContextBuilder::new()
+                    .with_vsync(true)
+                    .with_multisampling(4);
+    let display = glium::Display::new(window, context, &events_loop).unwrap();
+
+    let mut ui = conrod::UiBuilder::new([WIDTH as f64, HEIGHT as f64]).build();
+
+    let assets = find_folder::Search::KidsThenParents(3,
+    5).for_folder("assets").unwrap();
+    let font_path = assets.join("fonts/NotoSans/NotoSans-Regular.ttf");
+    ui.fonts.insert_from_file(font_path).unwrap();
+
+    // Build UI
+    let ids = Ids::new(ui.widget_id_generator());
+
+    let image_map = conrod::image::Map::<glium::texture::Texture2d>::new();
+    let mut renderer = conrod::backend::glium::Renderer::new(&display).unwrap();
+    // Poll events from the window.
+    let mut event_loop = EventLoop::new();
+    'main: loop {
+        // Handle all events.
+        for event in event_loop.next(&mut events_loop) {
+
+            // Use the `winit` backend feature to convert the winit event to a conrod one.
+            if let Some(event) = conrod::backend::winit::convert_event(event.clone(), &display) {
+                ui.handle_event(event);
+            }
+
+            match event {
+                glium::glutin::Event::WindowEvent { event, .. } => match event {
+                    // Break from the loop upon `Escape`.
+                    glium::glutin::WindowEvent::CloseRequested |
+                    glium::glutin::WindowEvent::KeyboardInput {
+                        input: glium::glutin::KeyboardInput {
+                            virtual_keycode: Some(glium::glutin::VirtualKeyCode::Escape),
+                            ..
+                        },
+                        ..
+                    } => break 'main,
+                    _ => (),
+                },
+                _ => (),
+            }
+        }
+
+        set_ui(ui.set_widgets(), &ids, &log.lock().unwrap());
+        // Render the `Ui` and then display it on the screen.
+        let primitives = ui.draw();
+        {
+            renderer.fill(&display, primitives, &image_map);
+            let mut target = display.draw();
+            target.clear_color(0.1, 0.1, 0.1, 1.0);
+            renderer.draw(&display, &mut target, &image_map).unwrap();
+            target.finish().unwrap();
+        }
+    }
+}
+
 fn main() {
     let mut utils = TuneUtils::new();
     utils.run();
+    //run_ui();
 }
 
 /*

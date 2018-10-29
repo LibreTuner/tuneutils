@@ -21,6 +21,8 @@ bv = "0.10.0"
 rustyline = "2.1.0"
 clap = "~2.27.0"
 directories = "1.0"
+conrod = { version = "0.61.1", features = ["glium", "winit"] }
+find_folder = "0.3.0"
 
 [target.'cfg(windows)'.dependencies]
 j2534 = { path = "j2534", optional = true }

@@ -52,6 +52,10 @@ impl DataLink for J2534DataLink {
 	fn can(&self, baudrate: usize) -> Option<Rc<CanInterface>> {
 		 // Create a new CAN channel
 		 if let Ok(interface) = J2534Can::connect(self.device.clone(), baudrate as u32) {
+		 	if let Err(err) = interface.apply_blank_filter() {
+		 		println!("Error applying blank filter: {}", err);
+		 		return None;
+		 	}
 		 	return Some(Rc::new(interface));
 		 }
 		 // TODO: Process error
