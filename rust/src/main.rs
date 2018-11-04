@@ -383,6 +383,54 @@ impl TuneUtils {
         }), "Datalog"));
 
 
+        commands.register("scan", Command::new(Box::new(|args| {
+            let mut s = tu.borrow_mut();
+            if args.len() < 2 {
+                println!("Usage: scan <datalink id> <platform id>");
+                return;
+            }
+            let datalink_id = match args[0].parse::<usize>() {
+                Ok(id) => id,
+                Err(err) => { println!("invalid datalink id"); return; },
+            };
+            let platform_id = args[1];
+
+            // Find the datalink
+            if datalink_id >= s.avail_links.borrow().len() {
+                println!("Datalink id out of scope");
+                return;
+            }
+
+            let datalink = match s.avail_links.borrow()[datalink_id].create() {
+                Ok(link) => link,
+                Err(err) => { println!("Failed to load datalink: {}", err); return; },
+            };
+
+            // Find the platform
+            let platform = match s.definitions.find(platform_id) {
+                Some(def) => def,
+                None => { println!("Invalid platform id"); return; },
+            };
+
+            // Create the platform link
+            let link = link::PlatformLink::new(datalink, platform.clone());
+            
+
+            let codes = link.uds().unwrap().request(3, &[]).unwrap();
+            println!("{:?}", codes);
+            let c = match (codes[0] & 0xC0) >> 6 {
+                0 => 'P',
+                1 => 'C',
+                0x10 => 'B',
+                0x11 => 'U',
+                _ => '?',
+            };
+
+            println!("Code: {}", c);
+
+        }), "Scans OBD-II codes"));
+
+
         println!("LibreTuner  Copyright (C) 2018  The LibreTuner Team
 This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
 This is free software, and you are welcome to redistribute it
