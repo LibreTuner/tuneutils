@@ -1,0 +1,124 @@
+name = "Mazdaspeed 6/Mazda 6 MPS/Mazdaspeed Atenza"
+id = "mazdaspeed6"
+
+rom_size = 1048576
+
+baudrate = 500000
+
+log_mode = "uds"
+
+vins = ["JM1GG12L........."]
+
+flash_offset = \u8000
+flash_size = \uF8000
+
+[transfer]
+    flash_mode = "mazda1"
+    download_mode = "mazda1"
+    key = "MazdA"
+    server_id = 0x7E0
+
+
+# Tables
+[[table]]
+    id = 0
+    type = "1d"
+    name = "Speed Limiter (fuel cut)"
+    description = "Maximum speed before fuel is cut"
+    datatype = "float"
+    category = "Limiters"
+    sizex = 1
+
+[[table]]
+    id = 1
+    type = "1d"
+    name = "Speed Limiter (Throttle close)"
+    description = "Maximum speed before the throttle plate is closed"
+    datatype = "float"
+    category = "Limiters"
+    sizex = 1
+
+[[table]]
+    id = 2
+    type = "2d"
+    name = "Some Timing Table"
+    description = "Unknown"
+    datatype = "float"
+    category = "Miscellaneous"
+    sizex = 8
+    sizey = 28
+    axisx = "rpm_500"
+    axisy = "load_3125"
+    minimum = -20
+    maximum = 60
+    
+[[table]]
+    id = 3
+    type = "2d"
+    name = "Maximum Ignition Timing (Open Loop)"
+    description = "Maximum iginition timing during open loop operation"
+    category = "Miscellaneous"
+    datatype = "float"
+    sizex = 14
+    sizey = 31
+    axisx = "rpm_500"
+    axisy = "load_125"
+    minimum = -20
+    maximum = 60
+    
+[[table]]
+    id = 4
+    type = "1d"
+    name = "Operating Load Limit 1"
+    description = "Maximum permitted operating load"
+    category = "Miscellaneous"
+    datatype = "float"
+    sizex = 14
+    axisx = "rpm_500"
+    minimum = 0
+    maximum = 4
+    
+[[table]]
+    id = 5
+    type = "2d"
+    name = "Requested Load Multiplier Accel/Decel Adjustment 1st - 2nd Gear with APP Increase"
+    description = "This table is used to reduce the load target during acceleration and shifting. Due to the inertia of the turbo it often overshoots the load target when accelerating and shifting. By anticipating the overshoot and reducing the load target, the actual target is more accurately achieved."
+    category = "Load Targeting"
+    datatype = "float"
+    sizex = 14
+    axisx = "rpm_500"
+    sizey = 14
+    axisy = "rpm_500"
+    minimum = 0.8
+    maximum = 1
+
+# Axes
+[[axis]]
+    id = "rpm_500"
+    type = "linear"
+    name = "RPM"
+    minimum = 500
+    increment = 500
+    
+[[axis]]
+    id = "load_125"
+    type = "linear"
+    name = "Load"
+    minimum = 0.125
+    increment = 0.0625
+    
+[[axis]]
+    id = "load_3125"
+    type = "linear"
+    name = "Load"
+    minimum = 0.3125
+    increment = 0.0625
+
+# PIDs
+[[pid]]
+    id = 0
+    name = "Coolant Temperature"
+    description = "Coolant Temperature"
+    code = 5
+    unit = "temp_celsius"
+    formula = "a - 40"

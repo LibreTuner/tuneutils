@@ -25,9 +25,4 @@ conrod = { version = "0.61.1", features = ["glium", "winit"] }
 find_folder = "0.3.0"
 
 [target.'cfg(windows)'.dependencies]
-j2534 = { path = "j2534", optional = true }
-
-[workspace]
-members = [
-    "j2534",
-]
+j2534 = { version = "0.1", optional = true }
