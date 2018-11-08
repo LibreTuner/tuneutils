@@ -6,11 +6,12 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use error::{Error, Result};
+use crate::{
+	error::{Error, Result},
+	definition,
+};
 
 pub mod tune;
-
-use definition;
 
 
 #[derive(Debug)]

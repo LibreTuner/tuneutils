@@ -1,9 +1,10 @@
-use protocols::isotp::IsotpInterface;
+use crate::{
+    protocols::isotp::IsotpInterface,
+    error::{Error, Result},
+};
+use super::{UdsInterface, UDS_NRES_RCRRP};
 
 use std::rc::Rc;
-
-use super::{UdsInterface, UDS_NRES_RCRRP};
-use error::{Error, Result};
 
 pub struct UdsIsotp {
     interface: Rc<IsotpInterface>,

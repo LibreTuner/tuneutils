@@ -1,6 +1,7 @@
-use protocols::uds;
-use self::uds::UdsInterface;
-use error::Result;
+use crate::{
+	protocols::uds::{self, UdsInterface},
+	error::Result,
+};
 
 pub struct MazdaAuthenticator {
 

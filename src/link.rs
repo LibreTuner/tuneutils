@@ -1,20 +1,20 @@
 #[cfg(feature = "socketcan")]
-use protocols::can::socketcan::SocketCan;
+use crate::protocols::can::socketcan::SocketCan;
 #[cfg(feature = "j2534")]
-use protocols::can::j2534can::J2534Can;
-#[cfg(feature = "j2534")]
-extern crate j2534;
+use crate::protocols::can::j2534can::J2534Can;
 
-use protocols::can::CanInterface;
-use protocols::isotp::{self, IsotpInterface, IsotpCan};
-use protocols::uds::{UdsIsotp, UdsInterface};
-
-use download::{self, Downloader};
-use flash::{self, Flasher};
-use error::Result;
-
-use definition::{self, DownloadMode, FlashMode, LogMode};
-use datalog;
+use crate::{
+	protocols::{
+		can::CanInterface,
+		isotp::{self, IsotpInterface, IsotpCan},
+		uds::{UdsIsotp, UdsInterface},
+	},
+	download::{self, Downloader},
+	flash::{self, Flasher},
+	definition::{self, DownloadMode, FlashMode, LogMode},
+	datalog,
+	error::Result,
+};
 
 use std::rc::Rc;
 use std::time;

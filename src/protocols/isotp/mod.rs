@@ -4,7 +4,7 @@ use std::default::Default;
 pub mod can;
 
 pub use self::can::IsotpCan;
-use error::{Error, Result};
+use crate::error::{Error, Result};
 
 use std::cmp;
 

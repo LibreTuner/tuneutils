@@ -1,12 +1,13 @@
 use super::{Downloader, DownloadResponse, DownloadCallback};
 
-use protocols::uds::UdsInterface;
-use authenticator::MazdaAuthenticator;
+use crate::{
+	protocols::uds::UdsInterface,
+	authenticator::MazdaAuthenticator,
+	error::{Error, Result},
+};
 
 use std::cmp;
 use std::rc::Rc;
-
-use error::{Error, Result};
 
 
 pub struct Mazda1Downloader {

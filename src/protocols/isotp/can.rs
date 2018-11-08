@@ -1,11 +1,13 @@
-use protocols::can::CanInterface;
+use crate::{
+    protocols::can::CanInterface,
+    error::{Error, Result},
+};
 
 use super::{IsotpInterface, Frame, Options, FCFlag, FlowControlFrame, FirstFrame, SingleFrame};
 use std::cmp;
 use std::time;
 use std::thread;
 use std::rc::Rc;
-use error::{Error, Result};
 
 pub struct IsotpCan {
     can: Rc<CanInterface>,

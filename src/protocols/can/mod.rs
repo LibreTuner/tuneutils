@@ -1,12 +1,8 @@
-#[cfg(feature = "j2534")]
-extern crate j2534;
-extern crate itertools;
-
 use std::time;
 use std::fmt;
 use std::iter;
-use error::Result;
-use self::itertools::Itertools;
+use crate::error::Result;
+use itertools::Itertools;
 
 
 #[cfg(feature = "j2534")]

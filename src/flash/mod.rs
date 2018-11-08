@@ -4,7 +4,7 @@ pub mod mazda;
 
 use std::cell::RefCell;
 
-use error::Result;
+use crate::error::Result;
 
 pub struct FlashData<'a> {
 	pub offset: usize,

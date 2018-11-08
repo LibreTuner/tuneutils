@@ -1,14 +1,11 @@
-extern crate libc;
-extern crate j2534;
-extern crate byteorder;
-
 use std::rc::Rc;
 use std::time;
-use self::byteorder::{WriteBytesExt, ReadBytesExt, BigEndian};
+use byteorder::{WriteBytesExt, ReadBytesExt, BigEndian};
 use std::io::{Write, Read};
-use error::{Error, Result};
-
-use protocols::can::{CanInterface, Message};
+use crate::{
+    protocols::can::{CanInterface, Message},
+    error::{Error, Result};
+};
 
 
 impl From<j2534::Error> for Error {

@@ -1,13 +1,12 @@
-extern crate byteorder;
-
 use super::{Flasher, FlashData};
 
-use error::Result;
+use crate::{
+	protocols::uds::{self, UdsInterface},
+	authenticator::MazdaAuthenticator,
+	error::Result,
+};
 
-use protocols::uds::{self, UdsInterface};
-use authenticator::MazdaAuthenticator;
-
-use self::byteorder::{BigEndian, WriteBytesExt};
+use byteorder::{BigEndian, WriteBytesExt};
 
 use std::cmp;
 use std::rc::Rc;

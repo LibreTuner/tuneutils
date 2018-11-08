@@ -1,14 +1,16 @@
-use numvariant::NumVariant;
-use definition::{self, Pid};
 use std::sync::atomic::{AtomicBool, Ordering};
-use protocols::uds::UdsInterface;
 use std::thread;
 use std::time;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
-use error::Result;
+use crate::{
+	protocols::uds::UdsInterface,
+	definition::{self, Pid},
+	numvariant::NumVariant,
+	error::Result,
+};
 
 extern crate eval;
 

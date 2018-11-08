@@ -8,7 +8,7 @@ use std::path::Path;
 use std::fs;
 use std::io::Read;
 
-use error::Result;
+use crate::error::Result;
 
 #[serde(rename_all = "lowercase")]
 #[derive(Debug, Serialize, Deserialize)]

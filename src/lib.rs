@@ -15,5 +15,6 @@ pub mod authenticator;
 pub mod definition;
 pub mod rom;
 pub mod datalog;
+pub mod diagnostics;
 
 pub use self::error::{Error, Result};

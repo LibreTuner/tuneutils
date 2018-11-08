@@ -15,13 +15,11 @@ use self::byteorder::{ByteOrder, BigEndian, LittleEndian, ReadBytesExt, WriteByt
 
 use super::{Rom, RomManager};
 
-use error::{Error, Result};
-
-use definition::{DataType, Endianness};
-use definition::Table as TableDefinition;
-
-use numvariant::NumVariant;
-
+use crate::{
+	error::{Error, Result},
+	definition::{self, DataType, Endianness},
+	numvariant::NumVariant,
+};
 
 
 
@@ -226,7 +224,7 @@ pub struct Table {
 
 impl Table {
 	/// Loads a table from the definition and raw data
-	pub fn load_raw(definition: &TableDefinition, data: &[u8], endianness: Endianness) -> Result<Table> {
+	pub fn load_raw(definition: &definition::Table, data: &[u8], endianness: Endianness) -> Result<Table> {
 		let size = definition.width * definition.height;
 		let data = match endianness {
 			Endianness::Big => deserialize_table::<BigEndian>(definition.data_type, data, size)?,

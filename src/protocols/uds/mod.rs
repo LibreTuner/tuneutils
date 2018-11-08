@@ -1,12 +1,10 @@
-extern crate byteorder;
-
 pub mod isotp;
 
 pub use self::isotp::UdsIsotp;
 
-use error::{Error, Result};
+use crate::error::{Error, Result};
 
-use self::byteorder::{BigEndian, WriteBytesExt};
+use byteorder::{BigEndian, WriteBytesExt};
 
 pub struct Response {
     pub data: Vec<u8>,

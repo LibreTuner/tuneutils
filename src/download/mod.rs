@@ -3,7 +3,7 @@
 pub mod mazda;
 
 use std::cell::RefCell;
-use error::Result;
+use crate::error::Result;
 
 pub struct DownloadCallback {
 	pub callback: Option<Box<RefCell<FnMut(f32)>>>,

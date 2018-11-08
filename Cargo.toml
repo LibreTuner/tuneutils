@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Altenius <jacobjm18@gmail.com>"]
 description = "Utilities for tuning vehicles"
 respository = "https://github.com/LibreTuner/tuneutils"
+edition = "2018"
 
 [features]
 socketcan = []

@@ -1,12 +1,10 @@
-extern crate libc;
-
 use std::io;
 use std::mem;
 use std::time;
 use std::ffi;
 
 use super::{CanInterface, Message};
-use error::{Error, Result};
+use crate::error::{Error, Result};
 
 
 const AF_CAN: libc::c_int = 29;
