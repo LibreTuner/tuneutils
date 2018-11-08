@@ -2,9 +2,12 @@
 name = "tuneutils"
 version = "0.1.1"
 authors = ["Altenius <jacobjm18@gmail.com>"]
-description = "Utilities for tuning vehicles"
+description = "Utilities for interfacing with, diagnosing, and tuning cars"
 respository = "https://github.com/LibreTuner/tuneutils"
+keywords = ["tuning", "cars", "ecu", "automotive", "obd"]
 edition = "2018"
+license = "GPL-3.0-or-later"
+readme = "README.md"
 
 [features]
 socketcan = []
