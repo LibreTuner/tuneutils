@@ -1,6 +1,6 @@
 [package]
 name = "tuneutils"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Altenius <jacobjm18@gmail.com>"]
 description = "Utilities for interfacing with, diagnosing, and tuning cars"
 respository = "https://github.com/LibreTuner/tuneutils"
