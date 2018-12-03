@@ -173,8 +173,8 @@ impl DataLink for SocketCanDataLink {
 
 
 pub struct PlatformLink {
-	link: Box<DataLink>,
-	platform: Rc<definition::Main>,
+	pub link: Box<DataLink>,
+	pub platform: Rc<definition::Main>,
 }
 
 impl PlatformLink {
