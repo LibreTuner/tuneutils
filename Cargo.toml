@@ -24,4 +24,4 @@ serde_yaml = "0.8"
 bv = "0.10.0"
 
 [target.'cfg(windows)'.dependencies]
-j2534 = { version = "0.1", optional = true }
+j2534 = { version = "0.1.2", optional = true }
