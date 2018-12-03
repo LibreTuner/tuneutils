@@ -4,7 +4,7 @@ use byteorder::{WriteBytesExt, ReadBytesExt, BigEndian};
 use std::io::{Write, Read};
 use crate::{
     protocols::can::{CanInterface, Message},
-    error::{Error, Result};
+    error::{Error, Result},
 };
 
 
