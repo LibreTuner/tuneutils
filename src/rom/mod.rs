@@ -2,6 +2,7 @@ extern crate serde_yaml;
 
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
+use std::sync::Arc;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -41,8 +42,8 @@ impl Rom {
 pub struct RomMeta {
 	pub name: String,
 	pub id: String,
-	pub model: Rc<definition::Model>,
-	pub platform: Rc<definition::Main>,
+	pub model: Arc<definition::Model>,
+	pub platform: Arc<definition::Main>,
 
 	pub data_path: PathBuf,
 }
@@ -133,7 +134,7 @@ impl RomManager {
 	/// Note: `save_meta()` should be called as the ROM metadata will not be saved by this function.
 	/// `Rom::save()` should also be called to save the ROM data.
 	/// If another ROM with the same id already exists, undefined behavior will occur.
-	pub fn new_rom(&mut self, name: String, id: String, platform: Rc<definition::Main>, model: Rc<definition::Model>, data: Vec<u8>) -> Rc<Rom> {
+	pub fn new_rom(&mut self, name: String, id: String, platform: Arc<definition::Main>, model: Arc<definition::Model>, data: Vec<u8>) -> Rc<Rom> {
 		let meta = RomMeta {
 			data_path: self.base.join(&id),
 

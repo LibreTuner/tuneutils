@@ -191,7 +191,7 @@ T: convert::From<NumVariant> + marker::Copy + TableType, NumVariant: convert::Fr
 	}
 }
 
-fn deserialize_table<O: ByteOrder>(datatype: DataType, data: &[u8], size: usize) -> Result<Box<TableDataTrait>> {
+fn deserialize_table<O: ByteOrder>(datatype: DataType, data: &[u8], size: usize) -> Result<Box<dyn TableDataTrait>> {
 	match datatype {
 		DataType::Uint8 => Ok(Box::new(TableData::<u8>::deserialize::<O>(data, size)?)),
 		DataType::Uint16 => Ok(Box::new(TableData::<u16>::deserialize::<O>(data, size)?)),
@@ -201,7 +201,7 @@ fn deserialize_table<O: ByteOrder>(datatype: DataType, data: &[u8], size: usize)
 		DataType::Int16 => Ok(Box::new(TableData::<i16>::deserialize::<O>(data, size)?)),
 		DataType::Int32 => Ok(Box::new(TableData::<i32>::deserialize::<O>(data, size)?)),
 		DataType::Int64 => Ok(Box::new(TableData::<i64>::deserialize::<O>(data, size)?)),
-		DataType::Float32 => Ok(Box::new(TableData::<f32>::deserialize::<O>(data, size)?)),
+		DataType::Float => Ok(Box::new(TableData::<f32>::deserialize::<O>(data, size)?)),
 		DataType::Float64 => Ok(Box::new(TableData::<f64>::deserialize::<O>(data, size)?)),
 	}
 }
@@ -216,7 +216,7 @@ pub struct Table {
 	pub data_type: DataType,
 	pub dirty: bool,
 	modified: BitVec,
-	data: Box<TableDataTrait>,
+	data: Box<dyn TableDataTrait>,
 	height: usize,
 
 	meta: TableMeta,
@@ -371,7 +371,7 @@ impl Tune {
 	/// Loads a table
 	pub fn load_table(&mut self, id: usize) -> Result<&Table> {
 		// Search for the table id
-		if let Some(table_def) = self.rom.meta.platform.tables.iter().find(|ref table| table.id == id) {
+		if let Some(table_def) = self.rom.meta.platform.find_table(id) {
 			// Get the offset
 			let offset = self.rom.meta.model.table_offsets.get(&id).ok_or(Error::NoTableOffset)?;
 

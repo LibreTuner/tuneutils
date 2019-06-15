@@ -1,6 +1,7 @@
 extern crate serde_yaml;
 
 use std::rc::Rc;
+use std::sync::Arc;
 use std::default;
 use std::collections::HashMap;
 
@@ -63,7 +64,7 @@ pub enum DataType {
     Uint16,
     Uint32,
     Uint64,
-    Float32,
+    Float,
     Float64,
     Int8,
     Int16,
@@ -92,10 +93,10 @@ pub struct Axis {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Table {
-	pub id: usize,
 	pub name: String,
 	pub description: String,
 	pub category: String,
+	#[serde(rename = "datatype")]
 	pub data_type: DataType,
 
 	#[serde(default = "default_table_dimension")]
@@ -120,7 +121,6 @@ pub struct Pid {
 	pub description: String,
 	pub formula: String,
 	pub unit: String,
-	pub datatype: DataType,
 	pub id: u32,
 	pub code: u16,
 }
@@ -166,10 +166,24 @@ pub struct Transfer {
 	pub download_mode: DownloadMode,
 	#[serde(default)]
 	pub flash_mode: FlashMode,
+	// Server ID for ISO-TP requests
+	#[serde(rename = "serverid")]
+	pub server_id: u16,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct FlashRegion {
+	pub offset: usize,
+	pub size: usize,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Auth {
 	// Security key
 	pub key: String,
-	// Server ID for ISO-TP requests
-	pub server_id: u16,
+
+	pub download_sessionid: u16,
+	pub flash_sessionid: u16,
 }
 
 /// A specific platform e.g. Mazdaspeed6
@@ -181,37 +195,41 @@ pub struct Main {
 	pub transfer: Transfer,
 	pub baudrate: u32,
 	#[serde(default)]
+	#[serde(rename = "logmode")]
 	pub log_mode: LogMode,
 	pub endianness: Endianness,
 
 	// Flash region
-	pub flash_offset: usize,
-	pub flash_size: usize,
+	#[serde(rename = "flashregion")]
+	pub flash_region: FlashRegion,
 
+	pub auth: Auth,
+
+	#[serde(rename = "romsize")]
 	pub rom_size: usize,
 
-	pub tables: Vec<Table>,
+	pub tables: HashMap<usize, Table>,
 	pub pids: Vec<Pid>,
 	pub vins: Vec<String>,
 
 	#[serde(skip)]
-	pub models: Vec<Rc<Model>>,
+	pub models: Vec<Arc<Model>>,
 }
 
 impl Main {
 	/// Searches for a model that matches the id
-	pub fn find(&self, id: &str) -> Option<&Rc<Model>> {
+	pub fn find(&self, id: &str) -> Option<&Arc<Model>> {
 		self.models.iter().find(|&model| model.id == id)
 	}
 
 	/// Searches for a table definition
 	pub fn find_table(&self, id: usize) -> Option<&Table> {
 		// This could be better implemented with a hash table
-		self.tables.iter().find(|ref x| x.id == id)
+		self.tables.get(&id)
 	}
 
 	/// Identifies the model of ROM data, or returns None if it could not be identified
-	pub fn identify(&self, data: &[u8]) -> Option<&Rc<Model>> {
+	pub fn identify(&self, data: &[u8]) -> Option<&Arc<Model>> {
 		self.models.iter().find(|&model| model.identify(data))
 	}
 }
@@ -229,12 +247,12 @@ impl Model {
 			}
 		}
 		// All identifiers succeeded
-		return true;
+		true
 	}
 }
 
 pub struct Definitions {
-	pub definitions: Vec<Rc<Main>>,
+	pub definitions: Vec<Arc<Main>>,
 }
 
 impl default::Default for Definitions {
@@ -283,10 +301,10 @@ impl Definitions {
 						file.read_to_string(&mut contents)?;
 					}
 					let model: Model = serde_yaml::from_str(&contents)?;
-					main.models.push(Rc::new(model));
+					main.models.push(Arc::new(model));
 				}
 
-				self.definitions.push(Rc::new(main));
+				self.definitions.push(Arc::new(main));
 			}
 		}
 
@@ -294,7 +312,7 @@ impl Definitions {
 	}
 
 	/// Searches for the main definition with the matching id
-	pub fn find(&self, id: &str) -> Option<&Rc<Main>> {
+	pub fn find(&self, id: &str) -> Option<&Arc<Main>> {
 		self.definitions.iter().find(|&def| def.id == id)
 	}
 }

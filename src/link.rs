@@ -216,7 +216,7 @@ impl PlatformLink {
 		match self.platform.transfer.download_mode {
 			DownloadMode::Mazda1 => {
 				if let Some(uds_interface) = self.uds() {
-					return Some(Box::new(download::mazda::Mazda1Downloader::new(uds_interface, &self.platform.transfer.key, self.platform.rom_size)));
+					return Some(Box::new(download::mazda::Mazda1Downloader::new(uds_interface, &self.platform.auth.key, self.platform.rom_size)));
 				}
 				None
 			},
@@ -229,7 +229,7 @@ impl PlatformLink {
 		match self.platform.transfer.flash_mode {
 			FlashMode::Mazda1 => {
 				if let Some(uds_interface) = self.uds() {
-					return Some(Box::new(flash::mazda::Mazda1Flasher::new(uds_interface, &self.platform.transfer.key)));
+					return Some(Box::new(flash::mazda::Mazda1Flasher::new(uds_interface, &self.platform.auth.key)));
 				}
 				None
 			},
